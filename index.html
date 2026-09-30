@@ -106,7 +106,9 @@
   .sec{font-family:'Oswald',sans-serif;font-size:12.5px;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 2px;padding-top:10px;border-top:1.5px solid var(--line);color:var(--ink);}
   .badge.vr{background:#E6F2EA;color:#1F6E4A;} .badge.vt{background:#FFF0E8;color:#C93A04;}
   .chk{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;padding:12px;border:2px dashed var(--ink);border-radius:10px;margin-top:12px;cursor:pointer;background:#fff;}
-  .chk input{width:22px;height:22px;margin:0;} .chk.ok{border-style:solid;border-color:var(--good);background:rgba(31,110,74,.08);color:var(--good);} nav.tabs button.active{color:var(--accent);}
+  .chk input{width:22px;height:22px;margin:0;}
+  .list-row.conf{padding:8px 0;} .list-row.conf .name{color:var(--good);} button.mini.ok{background:var(--good);border-color:var(--good);color:#fff;}
+  .prog{height:8px;background:#E5E5E5;border-radius:6px;overflow:hidden;margin-top:6px;} .prog div{height:100%;background:var(--good);} .chk.ok{border-style:solid;border-color:var(--good);background:rgba(31,110,74,.08);color:var(--good);} nav.tabs button.active{color:var(--accent);}
   .view{display:none;} .view.active{display:block;animation:fade .18s ease;}
   @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
   #custom-modal{position:fixed;inset:0;z-index:200;background:rgba(13,13,13,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto;}
@@ -153,6 +155,7 @@
     </div>
     <div class="card">
       <h2><span class="num">3</span> Colaboradores do mês <span class="right" style="display:flex;gap:6px"><button class="mini" id="btn-c-pdf">PDF</button><button class="mini" id="btn-c-xlsx">Excel</button></span></h2>
+      <div class="seg" id="c-filtro" style="margin-bottom:8px"><button data-f="pend" class="active">A conferir</button><button data-f="ok">Conferidos</button><button data-f="all">Todos</button></div>
       <input class="search" id="c-busca" placeholder="Pesquisar colaborador…">
       <div id="c-lista"></div>
     </div>
@@ -171,6 +174,7 @@
     <div class="card"><h2><span class="num">2</span> Fechamento mensal (VR + café)</h2><div id="vr-fech"></div></div>
     <div class="card">
       <h2><span class="num">3</span> Funcionários do mês <span class="right" style="display:flex;gap:6px"><button class="mini" id="btn-vr-pdf">PDF</button><button class="mini" id="btn-vr-xlsx">Excel</button></span></h2>
+      <div class="seg" id="vr-filtro" style="margin-bottom:8px"><button data-f="pend" class="active">A conferir</button><button data-f="ok">Conferidos</button><button data-f="all">Todos</button></div>
       <input class="search" id="vr-busca" placeholder="Pesquisar funcionário…">
       <div id="vr-lista"></div>
     </div>
@@ -596,6 +600,38 @@ function mostrarBanner(){
   $('banner-area').innerHTML = h;
 }
 
+// ================= REDESENHO SEM "PULAR" A TELA =================
+function preservar(viewId, render, anchorId){
+  const view = $(viewId);
+  const abertos = new Set([...view.querySelectorAll('details[data-k]')].filter(d=>d.open).map(d=>d.dataset.k));
+  const fechados = new Set([...view.querySelectorAll('details[data-k]')].filter(d=>!d.open).map(d=>d.dataset.k));
+  const rowSel = id => view.querySelector(`[data-row="${id}"]`);
+  const antes = anchorId && rowSel(anchorId) ? rowSel(anchorId).getBoundingClientRect().top : null;
+  const ae = document.activeElement;
+  const foc = ae && view.contains(ae) && ae.dataset && ae.dataset.id ? {vf:ae.dataset.vf, f:ae.dataset.f, id:ae.dataset.id, pos:(()=>{ try{ return ae.selectionStart; }catch(e){ return null; } })()} : null;
+  render();
+  view.querySelectorAll('details[data-k]').forEach(d=>{ if(abertos.has(d.dataset.k)) d.open = true; else if(fechados.has(d.dataset.k)) d.open = false; });
+  if(antes!=null && rowSel(anchorId)) window.scrollBy(0, rowSel(anchorId).getBoundingClientRect().top - antes);
+  if(foc){ const sel = foc.vf ? `[data-vf="${foc.vf}"][data-id="${foc.id}"]` : `[data-f="${foc.f}"][data-id="${foc.id}"]`; const el = view.querySelector(sel);
+    if(el){ el.focus({preventScroll:true}); try{ if(foc.pos!=null) el.setSelectionRange(foc.pos, foc.pos); }catch(e){} } }
+}
+
+
+let filtroConf = {c:'pend', vr:'pend'};
+function chipsConf(segId, lista, chave){
+  const ok = lista.filter(x=>x.it.conferido).length, pend = lista.length - ok;
+  const lab = {pend:`A conferir (${pend})`, ok:`Conferidos (${ok})`, all:`Todos (${lista.length})`};
+  $(segId).querySelectorAll('button').forEach(b=>{ b.textContent = lab[b.dataset.f]; b.classList.toggle('active', b.dataset.f===filtroConf[chave]); });
+  return {ok, pend};
+}
+function passaFiltro(x, chave){ const f = filtroConf[chave]; return f==='all' || (f==='ok') === !!x.it.conferido; }
+function linhaConferida(x, sub, attr){
+  return `<div class="list-row conf" data-row="${x.c.id}"><div class="top-line"><div><div class="name">✔ ${esc(x.c.nome)}</div>
+    <div class="sub">${sub} · conferido${x.it.conferidoPor?' por '+esc(String(x.it.conferidoPor).split('@')[0]):''}${x.it.conferidoEm?' em '+dataBR(x.it.conferidoEm):''}</div></div>
+    <div style="text-align:right"><div class="val">${brl(x.total)}</div><button class="link" ${attr}="${x.c.id}">reabrir</button></div></div></div>`;
+}
+function marcaConf(it, sim){ const u = auth && auth.currentUser; it.conferido = !!sim; it.conferidoPor = sim ? (u&&u.email||'local') : ''; it.conferidoEm = sim ? hojeISO() : ''; }
+
 // ================= COMPRA =================
 function gerarMes(ym, silencioso){
   meses[ym] = meses[ym] || {itens:{}};
@@ -633,10 +669,13 @@ function renderCompra(){
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast('Pedido copiado')).catch(()=>avisar(t));
   };
   const busca = ($('c-busca').value||'').toLowerCase();
-  const vis = itens.filter(x=>!busca || x.c.nome.toLowerCase().includes(busca) || (obraDe(x.c)||{nome:''}).nome.toLowerCase().includes(busca));
-  $('c-lista').innerHTML = vis.length ? vis.map(x=>{
+  const cc = chipsConf('c-filtro', itens, 'c');
+  const vis = itens.filter(x=>passaFiltro(x,'c')).filter(x=>!busca || x.c.nome.toLowerCase().includes(busca) || (obraDe(x.c)||{nome:''}).nome.toLowerCase().includes(busca));
+  const progC = `<div class="note" style="margin-top:0">${cc.ok} de ${itens.length} conferidos</div><div class="prog"><div style="width:${itens.length?Math.round(cc.ok/itens.length*100):0}%"></div></div>`;
+  $('c-lista').innerHTML = progC + (vis.length ? vis.map(x=>{
     const o = obraDe(x.c); const it = x.it;
-    return `<div class="list-row ${x.c.tipoRot==='INTEGRAÇÃO'?'int':''}" data-id="${x.c.id}">
+    if(it.conferido) return linhaConferida(x, `${esc(o?o.nome:'sem obra')} · ${esc(x.produto||'')} · ${x.diasLancar} dias`, 'data-reab-c');
+    return `<div class="list-row ${x.c.tipoRot==='INTEGRAÇÃO'?'int':''}" data-row="${x.c.id}">
       <div class="top-line"><div><div class="name">${esc(x.c.nome)} ${x.c.tipoRot==='INTEGRAÇÃO'?'<span class="badge int">Integração</span>':''} ${x.c.status!=='ATIVO'?'<span class="badge off">Inativo</span>':''}</div>
         <div class="sub">${esc(o?o.nome:'sem obra')} · ${esc(x.produto||'sem produto')} · ${brl(x.vd)}/dia</div></div>
         <div style="text-align:right"><div class="val">${brl(x.total)}</div><div class="sub">${x.diasLancar} dias a lançar</div></div></div>
@@ -646,7 +685,7 @@ function renderCompra(){
         <div><label>Saldo no cartão</label><input data-f="saldoInformado" data-id="${x.c.id}" placeholder="est. ${brl(x.saldoEst)}" value="${it.saldoInformado!=null?it.saldoInformado:''}" inputmode="decimal"></div>
       </div>
       <div class="note">${x.dias} dias × ${brl(x.vd)} = ${brl(x.mensal)} − saldo ${brl(x.saldo)}${x.saldoInformado?' (informado)':' (estimado)'} → ${x.diasLancar} dias = <b>${brl(x.total)}</b></div>
-      <details class="more"><summary>Solicitação e fechamento do mês</summary>
+      <details class="more" data-k="sol-${x.c.id}"><summary>Solicitação e fechamento do mês</summary>
         <div class="grid2">
           <div><label>Status</label><select data-f="status" data-id="${x.c.id}">${STATUS_SOL.map(s=>`<option ${it.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
           <div><label>Valor solicitado</label><input data-f="valorSolicitado" data-id="${x.c.id}" value="${it.valorSolicitado!=null?it.valorSolicitado:''}" placeholder="${brl(x.total)}" inputmode="decimal"></div>
@@ -658,7 +697,8 @@ function renderCompra(){
         <div class="row-btns"><button class="mini" data-act="rm" data-id="${x.c.id}">Tirar deste mês</button></div>
       </details>
       ${x.alertas.length?`<div class="alert-list">${x.alertas.map(a=>`<div>⚠ ${esc(a)}</div>`).join('')}</div>`:''}
-    </div>`; }).join('') : `<div class="empty">Ninguém neste mês.</div>`;
+      <div class="row-btns"><button class="mini ok" data-act="ok" data-id="${x.c.id}">✔ Marcar como conferido</button></div>
+    </div>`; }).join('') : `<div class="empty">${filtroConf.c==='pend'&&itens.length?'✔ Todos os colaboradores foram conferidos.':'Ninguém aqui.'}</div>`);
 }
 function onCompraInput(e){
   const el = e.target; const f = el.dataset.f, id = el.dataset.id; if(!f||!id) return;
@@ -668,15 +708,17 @@ function onCompraInput(e){
   if(f==='status' && el.value==='Solicitado' && !it.dataSolic) it.dataSolic = hojeISO();
   if(f==='status' && el.value==='Creditado' && !it.dataCredito) it.dataCredito = hojeISO();
   salvar('meses');
-  if(e.type==='change'){ memo={}; renderCompra(); renderResumo(); }
+  if(e.type==='change'){ const aid = id; setTimeout(()=>{ memo={}; preservar('view-compra', renderCompra, aid); renderResumo(); }, 0); }
 }
 async function onCompraClick(e){
+  const rb = e.target.closest('[data-reab-c]'); if(rb){ const ym=$('c-mes').value, id=rb.dataset.reabC; marcaConf(meses[ym].itens[id], false); salvar('meses'); memo={}; if(filtroConf.c==='ok'){ filtroConf.c='pend'; } renderCompra(); const r=document.querySelector(`#c-lista [data-row="${id}"]`); if(r) r.scrollIntoView({block:'center'}); return; }
   const b = e.target.closest('button[data-act]'); if(!b) return;
   const ym = $('c-mes').value, id = b.dataset.id, it = meses[ym].itens[id];
   if(b.dataset.act==='aj-'){ it.ajuste=(Number(it.ajuste)||0)-1; }
   else if(b.dataset.act==='aj+'){ it.ajuste=(Number(it.ajuste)||0)+1; }
   else if(b.dataset.act==='rm'){ if(!(await confirmar('Tirar este colaborador da compra deste mês?'))) return; delete meses[ym].itens[id]; }
-  salvar('meses'); memo={}; renderCompra(); renderResumo();
+  else if(b.dataset.act==='ok'){ const x = calcItem(ym,id); const av = x ? x.alertas.filter(a=>!a.startsWith('Solicitação')) : []; if(av.length && !(await confirmar('Este colaborador tem aviso:\n• '+av.join('\n• ')+'\n\nMarcar como conferido mesmo assim?'))) return; marcaConf(it, true); toast('✔ '+(x?x.c.nome.split(' ')[0]:'')+' conferido'); }
+  salvar('meses'); memo={}; preservar('view-compra', renderCompra, id); renderResumo();
 }
 function baixarCSV(){
   const ym = $('c-mes').value; const itens = itensMes(ym);
@@ -1230,7 +1272,6 @@ function calcVR(ym, cid){
   if(c.recebeVR==='SIM' && !c.recebeCafe) a.push('Definir no cadastro se recebe café');
   if(c.status!=='ATIVO') a.push('Desligado – dias proporcionais');
   if((semDir || Number(it.ajuste) || desconto) && !(it.motivo||'').trim()) a.push('Informe o motivo do ajuste/desconto');
-  if(total>0 && (!it.status || it.status==='Pendente')) a.push('Pedido pendente');
   x.alertas = a; return x;
 }
 function itensVR(ym){ const m = vrmeses[ym]; if(!m) return []; return Object.keys(m.itens).map(id=>calcVR(ym,id)).filter(Boolean).sort((a,b)=>sortNome(a.c,b.c)); }
@@ -1245,19 +1286,19 @@ function renderVR(){
   const tVR = r2(xs.reduce((s,x)=>s+x.totalVR,0)), tCafe = r2(xs.reduce((s,x)=>s+x.totalCafe,0));
   const ajustes = xs.filter(x=>x.semDir || Number(x.it.ajuste) || x.desconto);
   const total = r2(xs.reduce((s,x)=>s+x.total,0)), dias = xs.reduce((s,x)=>s+x.dias,0);
-  const pend = xs.filter(x=>x.alertas.length).length;
+  const pend = xs.filter(x=>x.alertas.length).length, naoConf = xs.filter(x=>!x.it.conferido).length;
   const kv = (l,v) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`;
   const quem = email => esc((email||'').split('@')[0]);
   $('vr-fech').innerHTML = `
     <div class="kpis">
       <div class="kpi hl"><div class="l">Total a pagar (VR + café) · ${ymNome(ym)}</div><div class="v">${brl(total)}</div></div>
       ${kv('Total VR', brl(tVR))}${kv('Total café', brl(tCafe))}
-      ${kv('Funcionários cadastrados (ativos)', ativos.length)}${kv('Recebem VR', xs.filter(x=>x.valor>0).length)}${kv('Recebem café', xs.filter(x=>x.cafe>0).length)}${kv('Não recebem VR', naoRecebem.length)}${kv('Dias considerados', dias)}${kv('Com ajuste', ajustes.length)}
+      ${kv('Lançamentos conferidos', (xs.length-naoConf)+' de '+xs.length)}${kv('Funcionários cadastrados (ativos)', ativos.length)}${kv('Recebem VR', xs.filter(x=>x.valor>0).length)}${kv('Recebem café', xs.filter(x=>x.cafe>0).length)}${kv('Não recebem VR', naoRecebem.length)}${kv('Dias considerados', dias)}${kv('Com ajuste', ajustes.length)}
     </div>
-    <details class="more"><summary>Incluídos (${xs.length})</summary><div class="note">${xs.map(x=>esc(x.c.nome)).join(' · ')||'—'}</div></details>
-    <details class="more"><summary>Não recebem VR (${naoRecebem.length})</summary><div class="note">${naoRecebem.map(c=>esc(c.nome)+(c.recebeVR?'':' <span style="color:var(--accent-dark)">(não definido)</span>')).join(' · ')||'—'}</div></details>
-    <details class="more"><summary>Excluídos do mês (${(f.excluidos||[]).length})</summary><div class="note">${(f.excluidos||[]).map(e=>`<div>${esc(e.nome)} – <i>${esc(e.motivo)}</i> <button class="link" data-reinc="${e.id}">incluir de volta</button></div>`).join('')||'—'}</div></details>
-    <details class="more" ${ajustes.length?'open':''}><summary>Ajustes realizados (${ajustes.length})</summary><div class="note">${ajustes.map(x=>{ const p=[]; const it=x.it;
+    <details class="more" data-k="f-inc"><summary>Incluídos (${xs.length})</summary><div class="note">${xs.map(x=>esc(x.c.nome)).join(' · ')||'—'}</div></details>
+    <details class="more" data-k="f-nao"><summary>Não recebem VR (${naoRecebem.length})</summary><div class="note">${naoRecebem.map(c=>esc(c.nome)+(c.recebeVR?'':' <span style="color:var(--accent-dark)">(não definido)</span>')).join(' · ')||'—'}</div></details>
+    <details class="more" data-k="f-exc"><summary>Excluídos do mês (${(f.excluidos||[]).length})</summary><div class="note">${(f.excluidos||[]).map(e=>`<div>${esc(e.nome)} – <i>${esc(e.motivo)}</i> <button class="link" data-reinc="${e.id}">incluir de volta</button></div>`).join('')||'—'}</div></details>
+    <details class="more" data-k="f-aj"><summary>Ajustes realizados (${ajustes.length})</summary><div class="note">${ajustes.map(x=>{ const p=[]; const it=x.it;
         if(+it.faltas) p.push(it.faltas+' falta(s)'); if(+it.ferias) p.push(it.ferias+' dia(s) de férias'); if(+it.afast) p.push(it.afast+' dia(s) de afastamento'); if(+it.outros) p.push(it.outros+' outro(s) dia(s) sem benefício');
         if(+it.ajuste) p.push((it.ajuste>0?'+':'')+it.ajuste+' dia(s) de ajuste'); if(x.desconto) p.push('desconto '+brl(x.desconto));
         return `<div><b>${esc(x.c.nome)}</b>: ${p.join(', ')}${it.motivo?' – <i>'+esc(it.motivo)+'</i>':' – <span style="color:var(--accent-dark)">sem motivo</span>'}</div>`; }).join('')||'—'}</div></details>
@@ -1267,28 +1308,30 @@ function renderVR(){
     ${!f.conferido && ['Pedido realizado','Creditado'].includes(f.status)?'<div class="alert-list">⚠ Pedido marcado como feito sem a conferência do fechamento.</div>':''}
     <div class="note">Se algo for alterado depois da conferência, a marcação é desfeita automaticamente para conferir de novo.</div>`;
   $('vr-conf').onchange = async e=>{
-    if(e.target.checked){ if(pend && !(await confirmar(`Há ${pend} funcionário(s) com aviso. Confirmar a conferência mesmo assim?`))){ renderVR(); return; }
+    if(e.target.checked){ if((pend||naoConf) && !(await confirmar(`${naoConf?naoConf+' funcionário(s) ainda não conferido(s). ':''}${pend?pend+' funcionário(s) com aviso. ':''}Confirmar o fechamento mesmo assim?`))){ renderVR(); return; }
       const u = auth && auth.currentUser; f.conferido=true; f.conferidoPor = u&&u.email||'local'; f.conferidoEm = hojeISO(); if(f.status==='Aberto') f.status='Conferido'; }
     else { f.conferido=false; f.conferidoPor=''; f.conferidoEm=''; if(f.status==='Conferido') f.status='Aberto'; }
     salvar('vrmeses'); renderVR(); renderResumo(); };
   $('vr-status').onchange = e=>{ f.status = e.target.value; salvar('vrmeses'); renderVR(); };
   $('vr-fech').querySelectorAll('[data-reinc]').forEach(b=>b.onclick=()=>{ f.excluidos = f.excluidos.filter(e=>e.id!==b.dataset.reinc); desfazConferencia(ym); gerarVR(ym,true); renderVR(); });
   const busca = ($('vr-busca').value||'').toLowerCase();
-  const vis = xs.filter(x=>!busca || x.c.nome.toLowerCase().includes(busca) || (obraDe(x.c)||{nome:''}).nome.toLowerCase().includes(busca));
+  const cv = chipsConf('vr-filtro', xs, 'vr');
+  const vis = xs.filter(x=>passaFiltro(x,'vr')).filter(x=>!busca || x.c.nome.toLowerCase().includes(busca) || (obraDe(x.c)||{nome:''}).nome.toLowerCase().includes(busca));
   const numIn = (fld, x, lab) => `<div><label>${lab}</label><input data-vf="${fld}" data-id="${x.c.id}" value="${Number(x.it[fld])||0}" inputmode="decimal"></div>`;
-  $('vr-lista').innerHTML = vis.length ? vis.map(x=>{ const o=obraDe(x.c), it=x.it;
-    return `<div class="list-row">
+  $('vr-lista').innerHTML = `<div class="note" style="margin-top:0">${cv.ok} de ${xs.length} conferidos</div><div class="prog"><div style="width:${xs.length?Math.round(cv.ok/xs.length*100):0}%"></div></div>` + (vis.length ? vis.map(x=>{ const o=obraDe(x.c), it=x.it;
+    if(it.conferido) return linhaConferida(x, `${esc(o?o.nome:'sem obra')} · ${x.dias} dias · VR ${brl(x.totalVR)}${x.cafe?' + café '+brl(x.totalCafe):''}${(x.semDir||Number(it.ajuste)||x.desconto)?' · com ajuste':''}`, 'data-reab-vr');
+    return `<div class="list-row" data-row="${x.c.id}">
       <div class="top-line"><div><div class="name">${esc(x.c.nome)} ${x.c.status!=='ATIVO'?'<span class="badge off">Inativo</span>':''}</div>
         <div class="sub">${esc(o?o.nome:'sem obra')} · admissão ${dataBR(x.c.admissao)||'—'} · VR ${x.valor?brl(x.valor)+'/dia':'—'} · café ${x.cafe?brl(x.cafe)+'/dia':'—'}</div></div>
         <div style="text-align:right"><div class="val">${brl(x.total)}</div><div class="sub">${x.dias} dias</div></div></div>
       <div class="note">${x.du} dias úteis − ${x.semDir} sem direito ${Number(it.ajuste)?(it.ajuste>0?'+ ':'− ')+Math.abs(it.ajuste)+' ajuste ':''}= <b>${x.dias} dias</b> · VR ${x.dias} × ${brl(x.valor)}${x.desconto?' − desconto '+brl(x.desconto):''} = ${brl(x.totalVR)}${x.cafe?' · café '+x.dias+' × '+brl(x.cafe)+' = '+brl(x.totalCafe):''} → <b>${brl(x.total)}</b></div>
-      <details class="more" ${(x.semDir||Number(it.ajuste)||x.desconto)?'open':''}><summary>Faltas, férias, afastamentos e ajustes</summary>
+      <details class="more" data-k="aj-${x.c.id}"><summary>Faltas, férias, afastamentos e ajustes${(x.semDir||Number(it.ajuste)||x.desconto)?' <span class="badge warn">com ajuste</span>':''}</summary>
       <div class="grid3" style="margin-top:6px">
         ${numIn('faltas',x,'Faltas')}${numIn('ferias',x,'Férias (dias)')}${numIn('afast',x,'Afastamentos')}${numIn('outros',x,'Outros dias sem direito')}${numIn('ajuste',x,'Ajuste (+/− dias)')}${numIn('desconto',x,'Desconto (R$)')}
       </div>
       <label>Motivo do ajuste / desconto</label><input data-vf="motivo" data-id="${x.c.id}" value="${esc(it.motivo||'')}" placeholder="ex.: férias de 10 a 14/10; 2 faltas sem atestado">
       </details>
-      <details class="more"><summary>Pedido e crédito</summary>
+      <details class="more" data-k="ped-${x.c.id}"><summary>Pedido e crédito</summary>
         <div class="grid2">
           <div><label>Status</label><select data-vf="status" data-id="${x.c.id}">${STATUS_VR.map(t=>`<option ${it.status===t?'selected':''}>${t}</option>`).join('')}</select></div>
           <div><label>Data do pedido</label><input type="date" data-vf="dataPedido" data-id="${x.c.id}" value="${it.dataPedido||''}"></div>
@@ -1298,7 +1341,8 @@ function renderVR(){
         <div class="row-btns"><button class="mini" data-vrexc="${x.c.id}">Excluir deste mês</button></div>
       </details>
       ${x.alertas.length?`<div class="alert-list">${x.alertas.map(a=>`<div>⚠ ${esc(a)}</div>`).join('')}</div>`:''}
-    </div>`; }).join('') : '<div class="empty">Ninguém nesta competência. Marque "Recebe VR = SIM" no Cadastro.</div>';
+      <div class="row-btns"><button class="mini ok" data-vrok="${x.c.id}">✔ Marcar como conferido</button></div>
+    </div>`; }).join('') : `<div class="empty">${filtroConf.vr==='pend'&&xs.length?'✔ Todos os funcionários foram conferidos. Agora marque o fechamento como conferido lá em cima.':'Ninguém aqui.'}</div>`);
 }
 function onVRInput(e){
   const el = e.target, fld = el.dataset.vf, id = el.dataset.id; if(!fld||!id) return;
@@ -1306,9 +1350,14 @@ function onVRInput(e){
   if(['faltas','ferias','afast','outros','ajuste','desconto'].includes(fld)) it[fld] = num(el.value)||0; else it[fld] = el.value;
   if(fld==='status' && el.value==='Pedido feito' && !it.dataPedido) it.dataPedido = hojeISO();
   if(fld==='status' && el.value==='Creditado' && !it.dataCredito) it.dataCredito = hojeISO();
-  if(e.type==='change'){ desfazConferencia(ym); salvar('vrmeses'); renderVR(); renderResumo(); } else salvar('vrmeses');
+  if(e.type==='change'){ desfazConferencia(ym); salvar('vrmeses'); setTimeout(()=>{ preservar('view-vr', renderVR, id); renderResumo(); }, 0); } else salvar('vrmeses');
 }
 async function onVRClick(e){
+  const ym0 = $('vr-mes').value;
+  const rb = e.target.closest('[data-reab-vr]'); if(rb){ const id=rb.dataset.reabVr; marcaConf(vrmeses[ym0].itens[id], false); desfazConferencia(ym0); salvar('vrmeses'); if(filtroConf.vr==='ok') filtroConf.vr='pend'; renderVR(); const r=document.querySelector(`#vr-lista [data-row="${id}"]`); if(r) r.scrollIntoView({block:'center'}); return; }
+  const ok = e.target.closest('button[data-vrok]'); if(ok){ const id=ok.dataset.vrok, x=calcVR(ym0,id); const av = x ? x.alertas.filter(a=>!a.startsWith('Pedido')) : [];
+    if(av.length && !(await confirmar('Este funcionário tem aviso:\n• '+av.join('\n• ')+'\n\nMarcar como conferido mesmo assim?'))) return;
+    marcaConf(vrmeses[ym0].itens[id], true); salvar('vrmeses'); preservar('view-vr', renderVR, id); renderResumo(); toast('✔ '+(x?x.c.nome.split(' ')[0]:'')+' conferido'); return; }
   const b = e.target.closest('button[data-vrexc]'); if(!b) return;
   const ym = $('vr-mes').value, id = b.dataset.vrexc, c = colabs.find(x=>x.id===id);
   abrirModal(`<h3>Excluir do VR de ${ymNome(ym)}</h3><div class="modal-msg">${esc(c.nome)} sai do fechamento deste mês (continua no Cadastro Geral).</div><label>Motivo da exclusão</label><input id="m-mot" placeholder="ex.: afastado pelo INSS o mês todo">
@@ -1418,6 +1467,8 @@ $('btn-add-feriado').onclick = ()=>{ const d=$('a-fer-data').value; if(!d){ toas
 $('btn-sair').onclick = async ()=>{ if(auth && auth.currentUser && await confirmar('Sair deste aparelho? Vai ser preciso digitar e-mail e senha de novo.')) sair(); };
 $('btn-trocar-senha').onclick = async ()=>{ const u = auth && auth.currentUser; if(!u||!u.email) return; try{ await auth.sendPasswordResetEmail(u.email); avisar('Enviamos um link para '+u.email+' para criar uma nova senha. Confira também o spam.'); }catch(e){ avisar(msgErroLogin(e)); } };
 $('vr-mes').onchange = renderVR; $('vr-busca').oninput = renderVR;
+$('vr-filtro').querySelectorAll('button').forEach(b=>b.onclick=()=>{ filtroConf.vr=b.dataset.f; renderVR(); });
+$('c-filtro').querySelectorAll('button').forEach(b=>b.onclick=()=>{ filtroConf.c=b.dataset.f; renderCompra(); });
 $('btn-vr-gerar').onclick = ()=>{ gerarVR($('vr-mes').value); renderVR(); renderResumo(); };
 $('vr-lista').addEventListener('input', e=>{ if(e.target.tagName==='INPUT') onVRInput(e); });
 $('vr-lista').addEventListener('change', onVRInput);
