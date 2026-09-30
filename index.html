@@ -641,7 +641,7 @@ function marcaConf(it, sim){ const u = auth && auth.currentUser; it.conferido = 
 // ================= COMPRA =================
 function gerarMes(ym, silencioso){
   meses[ym] = meses[ym] || {itens:{}};
-  const fora = new Set((meses[ym].fora||[]).map(f=>f.id));
+  const fora = new Set((meses[ym].fora||[]).map(f=>f.id)); ((vrmeses[ym]&&vrmeses[ym].fech&&vrmeses[ym].fech.excluidos)||[]).forEach(f=>fora.add(f.id));
   let add = 0;
   colabs.forEach(c=>{ if(elegivel(c,ym) && !meses[ym].itens[c.id] && !fora.has(c.id)){ meses[ym].itens[c.id] = {ajuste:0, saldoInformado:null, diasReais:null, valorSolicitado:null, status:'Pendente', dataSolic:'', dataCredito:'', obs:''}; add++; } });
   salvar('meses'); memo={};
@@ -705,19 +705,20 @@ function renderCompra(){
           <div><label>Dias REALMENTE trabalhados (ponto)</label><input data-f="diasReais" data-id="${x.c.id}" value="${it.diasReais!=null?it.diasReais:''}" placeholder="preencher no fim do mês" inputmode="numeric"></div>
           <div><label>Observação</label><input data-f="obs" data-id="${x.c.id}" value="${esc(it.obs||'')}"></div>
         </div>
-        <div class="row-btns"><button class="mini" data-act="rm" data-id="${x.c.id}">Deixar fora desta remessa</button></div>
       </details>
       ${x.alertas.length?`<div class="alert-list">${x.alertas.map(a=>`<div>⚠ ${esc(a)}</div>`).join('')}</div>`:''}
-      <div class="row-btns"><button class="mini ok" data-act="ok" data-id="${x.c.id}">✔ Marcar como conferido</button></div>
+      <div class="row-btns"><button class="mini ok" data-act="ok" data-id="${x.c.id}">✔ Marcar como conferido</button><button class="mini" data-act="rm" data-id="${x.c.id}">⏸ Deixar fora deste mês</button></div>
     </div>`; }).join('') : `<div class="empty">${filtroConf.c==='pend'&&itens.length?'✔ Todos os colaboradores foram conferidos.':'Ninguém aqui.'}</div>`) + blocoFora(ym);
 }
 function blocoFora(ym){
-  const fora = (meses[ym] && meses[ym].fora) || [];
+  const mapa = {};
+  ((meses[ym]&&meses[ym].fora)||[]).concat((vrmeses[ym]&&vrmeses[ym].fech&&vrmeses[ym].fech.excluidos)||[]).forEach(f=>{ if(!mapa[f.id]) mapa[f.id]=f; });
+  const fora = Object.values(mapa);
   if(!fora.length) return '';
-  return `<div class="fora-box"><div class="fora-tit">⏸ Fora desta remessa (${fora.length})</div>
+  return `<div class="fora-box"><div class="fora-tit">⏸ Fora deste mês – VT e VR (${fora.length})</div>
     ${fora.map(f=>`<div class="fora-row" data-row="${f.id}"><div><b>${esc(f.nome)}</b><div class="sub">${esc(f.motivo)} · desde ${dataBR(f.data)}</div></div>
       <button class="mini" data-vtinc="${f.id}">Incluir de volta</button></div>`).join('')}
-    <div class="note">Continua no Cadastro e volta automaticamente na lista do próximo mês. "Gerar / atualizar lista" não o recoloca nesta remessa.</div></div>`;
+    <div class="note">Vale para VT e VR/café. Continua no Cadastro e volta sozinho no próximo mês. "Gerar / atualizar lista" não recoloca neste mês.</div></div>`;
 }
 function onCompraInput(e){
   const el = e.target; const f = el.dataset.f, id = el.dataset.id; if(!f||!id) return;
@@ -731,31 +732,39 @@ function onCompraInput(e){
 }
 function foraRemessa(ym, id){
   const c = colabs.find(x=>x.id===id); if(!c) return;
-  abrirModal(`<h3>Deixar fora da remessa de ${ymNome(ym)}</h3><div class="modal-msg">${esc(c.nome)} não entra neste pedido de VT. Ele continua no Cadastro e pode ser incluído de volta depois (remessa complementar).</div>
+  abrirModal(`<h3>Deixar fora de ${ymNome(ym)}</h3><div class="modal-msg">${esc(c.nome)} sai do <b>VT</b> e do <b>VR/café</b> deste mês. Continua no Cadastro e volta sozinho no próximo mês. Se precisar, dá para incluir de volta depois.</div>
     <label>Motivo</label><input id="m-mot" placeholder="ex.: não está comparecendo">
-    <label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="m-vr" style="width:auto"> Tirar também do VR/café deste mês</label>
     <div class="modal-actions"><button class="secondary" id="m-cancel">Cancelar</button><button class="primary" id="m-save">Deixar fora</button></div>`);
   $('m-cancel').onclick = fecharModal;
+  setTimeout(()=>{ const m=$('m-mot'); if(m) m.focus(); }, 50);
   $('m-save').onclick = ()=>{ const mot = $('m-mot').value.trim(); if(!mot){ toast('Informe o motivo'); return; }
-    const m = meses[ym]; delete m.itens[id];
-    m.fora = (m.fora||[]).filter(x=>x.id!==id).concat([{id, nome:c.nome, motivo:mot, data:hojeISO()}]);
-    logHist(id,'Outro','VT '+ymNome(ym),'na remessa','fora da remessa', mot); salvar('meses');
-    if($('m-vr').checked){ const v = vrMes(ym); if(v.itens[id]){ delete v.itens[id]; }
-      v.fech.excluidos = (v.fech.excluidos||[]).filter(x=>x.id!==id).concat([{id, nome:c.nome, motivo:mot, data:hojeISO()}]);
-      desfazConferencia(ym); salvar('vrmeses'); }
-    fecharModal(); memo={}; renderCompra(); renderVR(); renderResumo(); toast(c.nome.split(' ')[0]+' fora desta remessa'); };
+    const reg = {id, nome:c.nome, motivo:mot, data:hojeISO()};
+    meses[ym] = meses[ym] || {itens:{}}; delete meses[ym].itens[id];
+    meses[ym].fora = (meses[ym].fora||[]).filter(x=>x.id!==id).concat([reg]);
+    const v = vrMes(ym); const tinhaVR = !!v.itens[id]; delete v.itens[id];
+    v.fech.excluidos = (v.fech.excluidos||[]).filter(x=>x.id!==id).concat([reg]);
+    if(tinhaVR) desfazConferencia(ym);
+    logHist(id,'Outro','VT e VR '+ymNome(ym),'no mês','fora do mês', mot); salvar('meses'); salvar('vrmeses');
+    fecharModal(); memo={}; renderCompra(); renderVR(); renderResumo(); toast(c.nome.split(' ')[0]+' fora de VT e VR deste mês'); };
 }
+function estaFora(ym, id){ return ((meses[ym]&&meses[ym].fora)||[]).some(x=>x.id===id) || ((vrmeses[ym]&&vrmeses[ym].fech&&vrmeses[ym].fech.excluidos)||[]).some(x=>x.id===id); }
 async function incluirDeVolta(ym, id){
-  const m = meses[ym], f = (m.fora||[]).find(x=>x.id===id); if(!f) return;
-  const jaPedido = Object.values(m.itens).some(it=>['Solicitado','Creditado'].includes(it.status));
-  const compl = jaPedido ? true : await confirmar('O pedido principal deste mês já foi feito na SPTrans?\n\nOK = sim, vai numa remessa complementar\nCancelar = não, entra no pedido normal');
-  m.fora = m.fora.filter(x=>x.id!==id);
-  m.itens[id] = {ajuste:0, saldoInformado:null, diasReais:null, valorSolicitado:null, status:'Pendente', dataSolic:'', dataCredito:'', obs: compl?'Remessa complementar – '+f.motivo:'', complementar: !!compl};
-  logHist(id,'Outro','VT '+ymNome(ym),'fora da remessa', compl?'remessa complementar':'na remessa', ''); salvar('meses'); memo={};
-  if(filtroConf.c==='ok') filtroConf.c='pend';
-  renderCompra(); renderResumo();
-  const r = document.querySelector(`#c-lista [data-row="${id}"]`); if(r) r.scrollIntoView({block:'center'});
-  toast(compl ? 'Incluído como remessa complementar – ajuste os dias (use o Ajuste com negativo para os dias que já passaram)' : 'Incluído de volta');
+  const c = colabs.find(x=>x.id===id); if(!c) return;
+  const f = ((meses[ym]&&meses[ym].fora)||[]).find(x=>x.id===id) || ((vrmeses[ym]&&vrmeses[ym].fech.excluidos)||[]).find(x=>x.id===id) || {motivo:''};
+  if(meses[ym]) meses[ym].fora = (meses[ym].fora||[]).filter(x=>x.id!==id);
+  if(vrmeses[ym]) vrmeses[ym].fech.excluidos = (vrmeses[ym].fech.excluidos||[]).filter(x=>x.id!==id);
+  let compl = false;
+  if(meses[ym] && elegivel(c,ym) && !meses[ym].itens[id]){
+    const jaPedido = Object.values(meses[ym].itens).some(it=>['Solicitado','Creditado'].includes(it.status));
+    compl = jaPedido ? true : await confirmar('O pedido de VT deste mês já foi feito na SPTrans?\n\nOK = sim, ele vai numa remessa complementar\nCancelar = não, entra no pedido normal');
+    meses[ym].itens[id] = {ajuste:0, saldoInformado:null, diasReais:null, valorSolicitado:null, status:'Pendente', dataSolic:'', dataCredito:'', obs: compl?'Remessa complementar – '+f.motivo:'', complementar: !!compl};
+  }
+  if(vrmeses[ym]){ desfazConferencia(ym); gerarVR(ym, true); }
+  logHist(id,'Outro','VT e VR '+ymNome(ym),'fora do mês', compl?'incluído (VT complementar)':'incluído', ''); salvar('meses'); salvar('vrmeses'); memo={};
+  if(filtroConf.c==='ok') filtroConf.c='pend'; if(filtroConf.vr==='ok') filtroConf.vr='pend';
+  renderCompra(); renderVR(); renderResumo();
+  const r = document.querySelector(`.view.active [data-row="${id}"]`) || document.querySelector(`[data-row="${id}"]`); if(r) r.scrollIntoView({block:'center'});
+  toast(compl ? 'Incluído de volta (VT como remessa complementar – ajuste os dias que já passaram)' : 'Incluído de volta no VT e no VR');
 }
 async function onCompraClick(e){
   const inc = e.target.closest('[data-vtinc]'); if(inc){ incluirDeVolta($('c-mes').value, inc.dataset.vtinc); return; }
@@ -1299,7 +1308,7 @@ function elegivelVR(c, ym){
 function vrMes(ym){ vrmeses[ym] = vrmeses[ym] || {itens:{}, fech:{status:'Aberto', conferido:false, excluidos:[]}}; if(!vrmeses[ym].fech) vrmeses[ym].fech={status:'Aberto',conferido:false,excluidos:[]}; return vrmeses[ym]; }
 function gerarVR(ym, silencioso){
   const m = vrMes(ym); let add = 0;
-  const exc = new Set((m.fech.excluidos||[]).map(e=>e.id));
+  const exc = new Set((m.fech.excluidos||[]).map(e=>e.id)); ((meses[ym]&&meses[ym].fora)||[]).forEach(f=>exc.add(f.id));
   colabs.forEach(c=>{ if(elegivelVR(c,ym) && !m.itens[c.id] && !exc.has(c.id)){ m.itens[c.id] = {faltas:0, ferias:0, afast:0, outros:0, ajuste:0, desconto:0, motivo:'', status:'Pendente', dataPedido:'', dataCredito:'', obs:''}; add++; } });
   salvar('vrmeses');
   if(!silencioso) toast(add ? add+' funcionário(s) incluído(s)' : 'Lista já está atualizada');
@@ -1361,7 +1370,7 @@ function renderVR(){
     else { f.conferido=false; f.conferidoPor=''; f.conferidoEm=''; if(f.status==='Conferido') f.status='Aberto'; }
     salvar('vrmeses'); renderVR(); renderResumo(); };
   $('vr-status').onchange = e=>{ f.status = e.target.value; salvar('vrmeses'); renderVR(); };
-  $('vr-fech').querySelectorAll('[data-reinc]').forEach(b=>b.onclick=()=>{ f.excluidos = f.excluidos.filter(e=>e.id!==b.dataset.reinc); desfazConferencia(ym); gerarVR(ym,true); renderVR(); });
+  $('vr-fech').querySelectorAll('[data-reinc]').forEach(b=>b.onclick=()=>incluirDeVolta(ym, b.dataset.reinc));
   const busca = ($('vr-busca').value||'').toLowerCase();
   const cv = chipsConf('vr-filtro', xs, 'vr');
   const vis = xs.filter(x=>passaFiltro(x,'vr')).filter(x=>!busca || x.c.nome.toLowerCase().includes(busca) || (obraDe(x.c)||{nome:''}).nome.toLowerCase().includes(busca));
@@ -1386,11 +1395,10 @@ function renderVR(){
           <div><label>Data do crédito</label><input type="date" data-vf="dataCredito" data-id="${x.c.id}" value="${it.dataCredito||''}"></div>
           <div><label>Observação</label><input data-vf="obs" data-id="${x.c.id}" value="${esc(it.obs||'')}"></div>
         </div>
-        <div class="row-btns"><button class="mini" data-vrexc="${x.c.id}">Excluir deste mês</button></div>
       </details>
       ${x.alertas.length?`<div class="alert-list">${x.alertas.map(a=>`<div>⚠ ${esc(a)}</div>`).join('')}</div>`:''}
-      <div class="row-btns"><button class="mini ok" data-vrok="${x.c.id}">✔ Marcar como conferido</button></div>
-    </div>`; }).join('') : `<div class="empty">${filtroConf.vr==='pend'&&xs.length?'✔ Todos os funcionários foram conferidos. Agora marque o fechamento como conferido lá em cima.':'Ninguém aqui.'}</div>`);
+      <div class="row-btns"><button class="mini ok" data-vrok="${x.c.id}">✔ Marcar como conferido</button><button class="mini" data-vrexc="${x.c.id}">⏸ Deixar fora deste mês</button></div>
+    </div>`; }).join('') : `<div class="empty">${filtroConf.vr==='pend'&&xs.length?'✔ Todos os funcionários foram conferidos. Agora marque o fechamento como conferido lá em cima.':'Ninguém aqui.'}</div>`) + blocoFora($('vr-mes').value);
 }
 function onVRInput(e){
   const el = e.target, fld = el.dataset.vf, id = el.dataset.id; if(!fld||!id) return;
@@ -1406,14 +1414,9 @@ async function onVRClick(e){
   const ok = e.target.closest('button[data-vrok]'); if(ok){ const id=ok.dataset.vrok, x=calcVR(ym0,id); const av = x ? x.alertas.filter(a=>!a.startsWith('Pedido')) : [];
     if(av.length && !(await confirmar('Este funcionário tem aviso:\n• '+av.join('\n• ')+'\n\nMarcar como conferido mesmo assim?'))) return;
     marcaConf(vrmeses[ym0].itens[id], true); salvar('vrmeses'); preservar('view-vr', renderVR, id); renderResumo(); toast('✔ '+(x?x.c.nome.split(' ')[0]:'')+' conferido'); return; }
+  const inc = e.target.closest('[data-vtinc]'); if(inc){ incluirDeVolta($('vr-mes').value, inc.dataset.vtinc); return; }
   const b = e.target.closest('button[data-vrexc]'); if(!b) return;
-  const ym = $('vr-mes').value, id = b.dataset.vrexc, c = colabs.find(x=>x.id===id);
-  abrirModal(`<h3>Excluir do VR de ${ymNome(ym)}</h3><div class="modal-msg">${esc(c.nome)} sai do fechamento deste mês (continua no Cadastro Geral).</div><label>Motivo da exclusão</label><input id="m-mot" placeholder="ex.: afastado pelo INSS o mês todo">
-    <div class="modal-actions"><button class="secondary" id="m-cancel">Cancelar</button><button class="primary" id="m-save">Excluir</button></div>`);
-  $('m-cancel').onclick = fecharModal;
-  $('m-save').onclick = ()=>{ const mot = $('m-mot').value.trim(); if(!mot){ toast('Informe o motivo'); return; }
-    const m = vrmeses[ym]; delete m.itens[id]; m.fech.excluidos = (m.fech.excluidos||[]).filter(x=>x.id!==id).concat([{id, nome:c.nome, motivo:mot, data:hojeISO()}]);
-    desfazConferencia(ym); logHist(id,'Outro','VR '+ymNome(ym),'incluído','excluído', mot); salvar('vrmeses'); fecharModal(); renderVR(); renderResumo(); };
+  foraRemessa($('vr-mes').value, b.dataset.vrexc);
 }
 // ---- relatórios VR ----
 function relVRPDF(ym, obraId){
