@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#0D0D0D">
-<title>Controle de VT · Nupe</title>
+<title>Benefícios · Nupe</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -102,7 +102,11 @@
   .banner.info{background:#fff;border:1.5px dashed var(--ink-soft);color:var(--ink-soft);}
   nav.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--ink);border-top:2px solid var(--accent);padding-bottom:env(safe-area-inset-bottom,0);z-index:20;}
   nav.tabs button{flex:1;background:none;border:none;color:var(--line);padding:10px 2px 9px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;}
-  nav.tabs button .ic{font-size:17px;} nav.tabs button.active{color:var(--accent);}
+  nav.tabs button .ic{font-size:17px;}
+  .sec{font-family:'Oswald',sans-serif;font-size:12.5px;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 2px;padding-top:10px;border-top:1.5px solid var(--line);color:var(--ink);}
+  .badge.vr{background:#E6F2EA;color:#1F6E4A;} .badge.vt{background:#FFF0E8;color:#C93A04;}
+  .chk{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;padding:12px;border:2px dashed var(--ink);border-radius:10px;margin-top:12px;cursor:pointer;background:#fff;}
+  .chk input{width:22px;height:22px;margin:0;} .chk.ok{border-style:solid;border-color:var(--good);background:rgba(31,110,74,.08);color:var(--good);} nav.tabs button.active{color:var(--accent);}
   .view{display:none;} .view.active{display:block;animation:fade .18s ease;}
   @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
   #custom-modal{position:fixed;inset:0;z-index:200;background:rgba(13,13,13,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto;}
@@ -126,7 +130,7 @@
 
 <header class="top">
   <img src="data:image/png;base64,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" alt="Nupe">
-  <div><h1>Vale-Transporte</h1><p>Cadastro · Rotas · Compra SPTrans</p></div>
+  <div><h1>Benefícios</h1><p>Cadastro geral · Vale-Transporte · Vale-Refeição</p></div>
   <div class="sync" id="sync-status"></div>
 </header>
 
@@ -154,6 +158,24 @@
     </div>
   </section>
 
+  <!-- VR -->
+  <section id="view-vr" class="view">
+    <div class="card">
+      <h2><span class="num">1</span> Vale-Refeição e café · competência</h2>
+      <div class="grid2">
+        <div><label for="vr-mes">Competência</label><input type="month" id="vr-mes"></div>
+        <div><label>&nbsp;</label><button class="secondary" style="margin-top:0" id="btn-vr-gerar">Gerar / atualizar lista</button></div>
+      </div>
+      <div class="note">Entram automaticamente os funcionários marcados no Cadastro Geral com <b>Recebe VR = SIM</b> e/ou <b>Recebe café = SIM</b>. Café e VR usam os mesmos dias. Dias úteis seguem a escala e os feriados; faltas, férias e afastamentos descontam dias.</div>
+    </div>
+    <div class="card"><h2><span class="num">2</span> Fechamento mensal (VR + café)</h2><div id="vr-fech"></div></div>
+    <div class="card">
+      <h2><span class="num">3</span> Funcionários do mês <span class="right" style="display:flex;gap:6px"><button class="mini" id="btn-vr-pdf">PDF</button><button class="mini" id="btn-vr-xlsx">Excel</button></span></h2>
+      <input class="search" id="vr-busca" placeholder="Pesquisar funcionário…">
+      <div id="vr-lista"></div>
+    </div>
+  </section>
+
   <!-- ROTAS -->
   <section id="view-rotas" class="view">
     <div class="card">
@@ -176,11 +198,15 @@
   <!-- EQUIPE -->
   <section id="view-equipe" class="view">
     <div class="card">
-      <h2><span class="num">1</span> Colaboradores <span class="right"><button class="mini dark" id="btn-novo-colab">+ Novo</button></span></h2>
+      <h2><span class="num">1</span> Cadastro geral de funcionários <span class="right"><button class="mini dark" id="btn-novo-colab">+ Novo</button></span></h2>
       <input class="search" id="e-busca" placeholder="Pesquisar…">
       <div class="seg" id="e-filtro" style="margin-bottom:6px;">
         <button data-f="ATIVO" class="active">Ativos</button><button data-f="INATIVO">Inativos</button><button data-f="TODOS">Todos</button>
       </div>
+      <div class="seg" id="e-filtro-b" style="margin-bottom:6px;">
+        <button data-b="" class="active">Todos</button><button data-b="VT">Recebe VT</button><button data-b="VR">VR / café</button><button data-b="NENHUM">Sem benefício</button>
+      </div>
+      <div class="note" id="e-contagem" style="margin-top:0"></div>
       <div id="e-lista"></div>
     </div>
     <div class="card">
@@ -200,12 +226,12 @@
       <div class="kpis" id="d-kpis"></div>
     </div>
     <div class="card"><h2><span class="num">2</span> Relatórios</h2>
-      <div class="seg" id="rel-tipo"><button data-t="cons" class="active">Consolidado do mês</button><button data-t="ind">Individual</button></div>
+      <div class="seg" id="rel-tipo"><button data-t="cons" class="active">Consolidado VT</button><button data-t="vr">Consolidado VR + café</button><button data-t="ind">Individual</button></div>
       <div id="rel-cons"><div class="grid2"><div><label for="rel-mes">Mês</label><input type="month" id="rel-mes"></div><div><label for="rel-obra">Obra</label><select id="rel-obra"></select></div></div>
         <div class="note">Todos os colaboradores do mês: produto SPTrans, dias, saldo, total a carregar e status. Traz também o pedido por produto e o total por obra.</div></div>
       <div id="rel-ind" style="display:none"><label for="rel-colab">Colaborador</label><select id="rel-colab"></select>
         <div class="grid2"><div><label for="rel-de">De</label><input type="month" id="rel-de"></div><div><label for="rel-ate">Até</label><input type="month" id="rel-ate"></div></div>
-        <div class="note">Dados do colaborador, rota oficial e movimentação mês a mês. O PDF sai com termo de recebimento para assinatura.</div></div>
+        <div class="note">Dados do funcionário, rota oficial, VT e VR mês a mês. O PDF sai com termo de recebimento para assinatura.</div></div>
       <div class="row-btns"><button class="primary" id="btn-rel-pdf" style="margin-top:0">Baixar PDF</button><button class="primary" id="btn-rel-xlsx" style="margin-top:0;background:#1F6E4A">Baixar Excel</button></div>
     </div>
     <div class="card"><h2><span class="num">3</span> Alertas</h2><div id="d-alertas"></div></div>
@@ -243,9 +269,10 @@
 <div class="toast" id="toast"></div>
 
 <nav class="tabs">
-  <button class="tab-btn active" data-view="compra"><span class="ic">🎫</span>Compra</button>
+  <button class="tab-btn" data-view="equipe"><span class="ic">👥</span>Cadastro</button>
+  <button class="tab-btn active" data-view="compra"><span class="ic">🎫</span>VT</button>
   <button class="tab-btn" data-view="rotas"><span class="ic">🗺</span>Rotas</button>
-  <button class="tab-btn" data-view="equipe"><span class="ic">👥</span>Equipe</button>
+  <button class="tab-btn" data-view="vr"><span class="ic">🍽</span>VR</button>
   <button class="tab-btn" data-view="resumo"><span class="ic">Σ</span>Resumo</button>
   <button class="tab-btn" data-view="ajustes"><span class="ic">⚙</span>Ajustes</button>
 </nav>
@@ -363,7 +390,7 @@ const FERIADOS_PADRAO = [
   ['2027-05-01','Dia do Trabalho'],['2027-05-27','Corpus Christi'],['2027-07-09','Revolução Constitucionalista'],['2027-09-07','Independência'],
   ['2027-10-12','N. Sra. Aparecida'],['2027-11-02','Finados'],['2027-11-15','Proclamação da República'],['2027-11-20','Consciência Negra'],['2027-12-25','Natal']
 ].map(([data,desc])=>({data,desc}));
-const CONFIG_PADRAO = { diasRef:22, tempoMax:120, embPorTarifa:2, saldoMax:1184, validadeRota:180, validadeTarifa:180, googleKey:'' };
+const CONFIG_PADRAO = { vrPadrao:33.44, cafePadrao:9, diasRef:22, tempoMax:120, embPorTarifa:2, saldoMax:1184, validadeRota:180, validadeTarifa:180, googleKey:'' };
 const ESCALAS = {'Seg a Sex':[1,2,3,4,5],'Seg a Sáb':[1,2,3,4,5,6],'Ter a Sáb':[2,3,4,5,6],'Seg a Qui':[1,2,3,4],'Seg a Dom':[0,1,2,3,4,5,6],'Escala especial (dias fixos)':null};
 const MODAIS = ['Ônibus','Metrô','CPTM','Ônibus + Metrô','Ônibus + CPTM','Ônibus + CPTM + Metrô','Metrô + CPTM','EMTU','EMTU + Metrô/CPTM','Ônibus + EMTU','Outro'];
 const TIPOS_CARTAO = ['Bilhete Único VT (SPTrans)','Cartão TOP VT','Cartão municipal de outra cidade','Mais de um cartão','Não utiliza transporte público'];
@@ -371,22 +398,24 @@ const TIPOS_HIST = ['Admissão','Mudança de endereço','Mudança de obra','Muda
 const STATUS_SOL = ['Pendente','Solicitado','Creditado','Conferido'];
 
 // ================= ESTADO =================
-let obras=[], colabs=[], rotas=[], tarifas=[], feriados=[], config={}, meses={}, hist=[];
-const KEYS = {obras:'vt_obras', colabs:'vt_colab', rotas:'vt_rotas', tarifas:'vt_tarifas', feriados:'vt_feriados', config:'vt_config', meses:'vt_meses', hist:'vt_hist'};
+let obras=[], colabs=[], rotas=[], tarifas=[], feriados=[], config={}, meses={}, hist=[], vrmeses={};
+const KEYS = {obras:'vt_obras', colabs:'vt_colab', rotas:'vt_rotas', tarifas:'vt_tarifas', feriados:'vt_feriados', config:'vt_config', meses:'vt_meses', hist:'vt_hist', vrmeses:'vt_vr_meses'};
 async function carregar(){
   const g = async (k, def) => { try{ const v = await storageGet(k); return v ? JSON.parse(v) : def; }catch(e){ return def; } };
   obras = await g(KEYS.obras, []); colabs = await g(KEYS.colabs, []); rotas = await g(KEYS.rotas, []);
   tarifas = await g(KEYS.tarifas, null) || JSON.parse(JSON.stringify(TARIFAS_PADRAO));
   feriados = await g(KEYS.feriados, null) || FERIADOS_PADRAO.slice();
   config = Object.assign({}, CONFIG_PADRAO, await g(KEYS.config, {}));
-  meses = await g(KEYS.meses, {}); hist = await g(KEYS.hist, []);
+  if(Number(config.vrPadrao)===33.34){ config.vrPadrao = 33.44; }
+  if(config.cafePadrao==null) config.cafePadrao = 9;
+  meses = await g(KEYS.meses, {}); hist = await g(KEYS.hist, []); vrmeses = await g(KEYS.vrmeses, {});
 }
 const saveTimers = {};
 function salvar(nome){
   clearTimeout(saveTimers[nome]);
   setSync('salvando…');
   saveTimers[nome] = setTimeout(async ()=>{
-    const map = {obras, colabs, rotas, tarifas, feriados, config, meses, hist};
+    const map = {obras, colabs, rotas, tarifas, feriados, config, meses, hist, vrmeses};
     await storageSet(KEYS[nome], JSON.stringify(map[nome]));
     setSync(modoLocal ? 'modo local (sem nuvem)' : 'salvo ✓');
   }, 400);
@@ -468,8 +497,8 @@ function produtoDe(c){
 }
 function mascaraEscala(c){ return ESCALAS[c.escala] || ESCALAS['Seg a Sex']; }
 function feriadoSet(){ return new Set(feriados.map(f=>f.data)); }
-function diasUteis(c, ym){
-  if(c.recebeVT==='NÃO') return 0;
+function diasUteis(c, ym){ return c.recebeVT==='NÃO' ? 0 : diasUteisBase(c, ym); }
+function diasUteisBase(c, ym){
   const [y,m] = ym.split('-').map(Number);
   let ini = new Date(y,m-1,1), fim = new Date(y,m,0);
   if(c.admissao){ const a=new Date(c.admissao+'T00:00'); if(a>ini) ini=a; }
@@ -542,7 +571,8 @@ function alertasColab(c){
 }
 function alertasItem(x){
   const a = [];
-  if(!x.vd) a.push('Sem rota oficial – VT zerado');
+  if(x.c.recebeVT==='NÃO') a.push('Marcado como NÃO recebe VT no cadastro – tire deste mês');
+  else if(!x.vd) a.push('Sem rota oficial – VT zerado');
   if(x.c.status!=='ATIVO') a.push('Desligado – dias proporcionais');
   if(x.produto.startsWith('Outros')) a.push('Produto "Outros": digitar '+brl(x.vd)+' por dia na Loja Virtual');
   if(x.saldo + x.total > config.saldoMax) a.push('Saldo + crédito passa de '+brl(config.saldoMax)+' – a recarga pode travar');
@@ -558,7 +588,7 @@ function logHist(colabId, tipo, campo, antes, depois, obs){
 }
 
 // ================= RENDER GERAL =================
-function renderTudo(){ memo = {}; renderCompra(); renderRotas(); renderEquipe(); renderResumo(); renderRelatorios(); renderAjustes(); mostrarBanner(); }
+function renderTudo(){ memo = {}; renderVR(); renderCompra(); renderRotas(); renderEquipe(); renderResumo(); renderRelatorios(); renderAjustes(); mostrarBanner(); }
 function mostrarBanner(){
   let h = '';
   if(modoLocal) h += `<div class="banner warn">Sem conexão com a nuvem: os dados estão ficando só neste aparelho. Abra pelo link do GitHub Pages para salvar no Firebase.</div>`;
@@ -662,8 +692,9 @@ function opcoesColab(sel, vazio){
   return (vazio?`<option value="">${vazio}</option>`:'') + ord.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.nome)}${c.status!=='ATIVO'?' (inativo)':''}</option>`).join('');
 }
 function renderRotas(){
-  const sel = $('r-colab').value || (colabs.slice().sort(sortNome)[0]||{}).id || '';
-  $('r-colab').innerHTML = opcoesColab(sel);
+  const vtc = colabs.filter(c=>c.recebeVT!=='NÃO').sort(sortNome);
+  let sel = $('r-colab').value; if(!vtc.some(c=>c.id===sel)) sel = (vtc[0]||{}).id || '';
+  $('r-colab').innerHTML = vtc.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.nome)}${c.status!=='ATIVO'?' (inativo)':''}</option>`).join('');
   const c = colabs.find(x=>x.id===sel);
   if(!c){ $('r-info').innerHTML = '<div class="empty">Cadastre colaboradores em Equipe.</div>'; $('r-comp').innerHTML=''; renderTodasRotas(); return; }
   const o = obraDe(c), of = oficial(c), al = alertasColab(c);
@@ -841,13 +872,18 @@ async function buscarGoogle(c){
 
 // ================= EQUIPE =================
 let filtroEquipe = 'ATIVO';
+let filtroBenef = '';
 function renderEquipe(){
   const busca = ($('e-busca').value||'').toLowerCase();
-  const lst = colabs.slice().sort(sortNome).filter(c=>(filtroEquipe==='TODOS'||c.status===filtroEquipe) && (!busca || c.nome.toLowerCase().includes(busca) || (c.cargo||'').toLowerCase().includes(busca)));
+  const fb = c => !filtroBenef || (filtroBenef==='VT' && c.recebeVT!=='NÃO') || (filtroBenef==='VR' && (c.recebeVR==='SIM'||c.recebeCafe==='SIM')) || (filtroBenef==='NENHUM' && c.recebeVT==='NÃO' && c.recebeVR!=='SIM' && c.recebeCafe!=='SIM');
+  const lst = colabs.slice().sort(sortNome).filter(c=>(filtroEquipe==='TODOS'||c.status===filtroEquipe) && fb(c) && (!busca || c.nome.toLowerCase().includes(busca) || (c.cargo||'').toLowerCase().includes(busca) || (c.cpf||'').includes(busca)));
+  const at = colabs.filter(c=>c.status==='ATIVO');
+  $('e-contagem').innerHTML = `${at.length} ativos · <b>${at.filter(c=>c.recebeVT!=='NÃO').length}</b> recebem VT · <b>${at.filter(c=>c.recebeVR==='SIM').length}</b> recebem VR · <b>${at.filter(c=>c.recebeCafe==='SIM').length}</b> recebem café · ${at.filter(c=>!c.recebeVR).length?'<span style="color:var(--accent-dark)">'+at.filter(c=>!c.recebeVR).length+' sem definição de VR</span>':''}`;
   $('e-lista').innerHTML = lst.length ? lst.map(c=>{ const o=obraDe(c), al=alertasColab(c);
     return `<div class="list-row ${c.tipoRot==='INTEGRAÇÃO'?'int':''}"><div class="top-line"><div>
-      <div class="name">${esc(c.nome)} ${c.tipoRot==='INTEGRAÇÃO'?'<span class="badge int">Integração</span>':''} ${c.status!=='ATIVO'?'<span class="badge off">Inativo</span>':''}</div>
-      <div class="sub">${esc(c.cargo||'')} · ${esc(o?o.nome:'sem obra')} · ${c.recebeVT==='NÃO'?'não recebe VT':brl(vtDiario(c))+'/dia'}</div></div>
+      <div class="name">${esc(c.nome)} ${c.status!=='ATIVO'?'<span class="badge off">Inativo</span>':''}</div>
+      <div class="sub">${esc(c.cargo||'')} · ${esc(o?o.nome:'sem obra')}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${c.recebeVT==='NÃO'?'<span class="badge">sem VT</span>':'<span class="badge vt">VT '+brl(vtDiario(c))+'/dia</span>'}${c.tipoRot==='INTEGRAÇÃO'?'<span class="badge int">Integração</span>':''}${c.recebeVR==='SIM'?'<span class="badge vr">VR '+brl(valorVR(c))+'/dia</span>':c.recebeVR==='NÃO'?'<span class="badge">sem VR</span>':'<span class="badge warn">VR a definir</span>'}${c.recebeCafe==='SIM'?'<span class="badge vr">☕ '+brl(valorCafe(c))+'/dia</span>':c.recebeCafe==='NÃO'?'<span class="badge">sem café</span>':'<span class="badge warn">café a definir</span>'}</div></div>
       <div><button class="mini" data-ed="${c.id}">Editar</button></div></div>
       ${al.length?`<div class="alert-list">${al.map(a=>`<div>⚠ ${esc(a)}</div>`).join('')}</div>`:''}</div>`; }).join('') : '<div class="empty">Nenhum colaborador.</div>';
   $('e-lista').querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>editarColab(colabs.find(c=>c.id===b.dataset.ed)));
@@ -857,29 +893,35 @@ function renderEquipe(){
       <button class="mini" data-eo="${o.id}">Editar</button></div></div>`; }).join('') : '<div class="empty">Nenhuma obra.</div>';
   $('o-lista').querySelectorAll('[data-eo]').forEach(b=>b.onclick=()=>editarObra(obras.find(o=>o.id===b.dataset.eo)));
 }
-const CAMPOS_HIST = {endereco:'Mudança de endereço', cep:'Mudança de endereço', bairro:'Mudança de endereço', municipio:'Mudança de endereço', obraId:'Mudança de obra', entrada:'Mudança de horário', saida:'Mudança de horário', escala:'Mudança de escala/dias', diasFixos:'Mudança de escala/dias', cartao:'Mudança de cartão', tipoTransporte:'Mudança de cartão', status:'Desligamento', desligamento:'Desligamento'};
+const CAMPOS_HIST = {recebeVT:'Outro', recebeVR:'Outro', valorVR:'Outro', recebeCafe:'Outro', valorCafe:'Outro', endereco:'Mudança de endereço', cep:'Mudança de endereço', bairro:'Mudança de endereço', municipio:'Mudança de endereço', obraId:'Mudança de obra', entrada:'Mudança de horário', saida:'Mudança de horário', escala:'Mudança de escala/dias', diasFixos:'Mudança de escala/dias', cartao:'Mudança de cartão', tipoTransporte:'Mudança de cartão', status:'Desligamento', desligamento:'Desligamento'};
 function editarColab(c){
   const novo = !c; c = c || {id:uid(), status:'ATIVO', recebeVT:'SIM', escala:'Seg a Sex', tipoRot:'PADRÃO', tipoTransporte:TIPOS_CARTAO[0], uf:'SP', municipio:'São Paulo'};
   const f = (id,lab,val,extra) => `<div><label for="f-${id}">${lab}</label><input id="f-${id}" value="${esc(val||'')}" ${extra||''}></div>`;
   const s = (id,lab,opts,val) => `<div><label for="f-${id}">${lab}</label><select id="f-${id}">${opts.map(o=>typeof o==='string'?`<option ${o===val?'selected':''}>${esc(o)}</option>`:`<option value="${o.v}" ${o.v===val?'selected':''}>${esc(o.t)}</option>`).join('')}</select></div>`;
   abrirModal(`<h3>${novo?'Novo colaborador':esc(c.nome)}</h3>
+    <div class="sec" style="border-top:none;margin-top:0;padding-top:0">Dados gerais</div>
     ${f('nome','Nome completo',c.nome)}
-    <div class="grid2">${f('cargo','Cargo',c.cargo)}${s('obraId','Obra',[{v:'',t:'— selecione —'}].concat(obras.slice().sort(sortNome).map(o=>({v:o.id,t:o.nome}))),c.obraId||'')}
+    <div class="grid2">${f('cpf','CPF',c.cpf,'inputmode="numeric" placeholder="000.000.000-00"')}${f('cargo','Cargo',c.cargo)}${s('obraId','Obra',[{v:'',t:'— selecione —'}].concat(obras.slice().sort(sortNome).map(o=>({v:o.id,t:o.nome}))),c.obraId||'')}
     ${f('endereco','Endereço (rua, nº)',c.endereco)}${f('cep','CEP',c.cep)}${f('bairro','Bairro',c.bairro)}${f('municipio','Município',c.municipio)}
     ${f('uf','UF',c.uf)}${f('telefone','Telefone',c.telefone,'inputmode="tel"')}
     ${f('entrada','Entrada',c.entrada,'type="time"')}${f('saida','Saída',c.saida,'type="time"')}
     ${s('escala','Dias trabalhados',Object.keys(ESCALAS),c.escala)}${f('diasFixos','Dias/mês fixos (só escala especial)',c.diasFixos,'inputmode="numeric"')}
-    ${s('recebeVT','Recebe VT?',['SIM','NÃO'],c.recebeVT)}${s('tipoTransporte','Tipo de cartão/transporte',TIPOS_CARTAO,c.tipoTransporte)}
-    ${f('cartao','Nº do cartão',c.cartao,'inputmode="numeric"')}${s('tipoRot','Tipo p/ roteirização',['PADRÃO','INTEGRAÇÃO'],c.tipoRot||'PADRÃO')}
     ${s('status','Status',['ATIVO','INATIVO'],c.status)}${f('admissao','Admissão',c.admissao,'type="date"')}
     ${f('desligamento','Desligamento',c.desligamento,'type="date"')}</div>
+    <div class="sec">Vale-Transporte</div>
+    <div class="grid2">${s('recebeVT','Recebe VT?',['SIM','NÃO'],c.recebeVT)}${s('tipoTransporte','Tipo de cartão/transporte',TIPOS_CARTAO,c.tipoTransporte)}
+    ${f('cartao','Nº do cartão',c.cartao,'inputmode="numeric"')}${s('tipoRot','Tipo p/ roteirização',['PADRÃO','INTEGRAÇÃO'],c.tipoRot||'PADRÃO')}</div>
+    <div class="sec">Vale-Refeição e café</div>
+    <div class="grid2">${s('recebeVR','Recebe VR?',[{v:'',t:'— definir —'},{v:'SIM',t:'SIM'},{v:'NÃO',t:'NÃO'}],c.recebeVR||'')}${f('valorVR','Valor diário do VR (R$)',c.valorVR,'inputmode="decimal" placeholder="padrão: '+brl(config.vrPadrao)+'"')}
+    ${s('recebeCafe','Recebe café?',[{v:'',t:'— definir —'},{v:'SIM',t:'SIM'},{v:'NÃO',t:'NÃO'}],c.recebeCafe||'')}${f('valorCafe','Valor diário do café (R$)',c.valorCafe,'inputmode="decimal" placeholder="padrão: '+brl(config.cafePadrao)+'"')}</div>
+    <div class="note">Deixe o valor em branco para usar o valor padrão (Ajustes). O funcionário continua no cadastro mesmo sem benefícios.</div>
     <label for="f-obs">Observações</label><textarea id="f-obs">${esc(c.obs||'')}</textarea>
     <div class="modal-actions">${novo?'':'<button class="secondary" id="m-del">Excluir</button>'}<button class="secondary" id="m-cancel">Cancelar</button><button class="primary" id="m-save">Salvar</button></div>`);
   $('m-cancel').onclick = fecharModal;
   if($('m-del')) $('m-del').onclick = async ()=>{ fecharModal(); if(!(await confirmar(`Excluir ${c.nome}? Prefira marcar como INATIVO para manter o histórico.`))) return;
     colabs = colabs.filter(x=>x.id!==c.id); rotas = rotas.filter(r=>r.colabId!==c.id); logHist('', 'Outro','Colaborador', c.nome, 'excluído'); salvar('colabs'); salvar('rotas'); renderTudo(); };
   $('m-save').onclick = ()=>{
-    const campos = ['nome','cargo','obraId','endereco','cep','bairro','municipio','uf','telefone','entrada','saida','escala','diasFixos','recebeVT','tipoTransporte','cartao','tipoRot','status','admissao','desligamento','obs'];
+    const campos = ['nome','cpf','recebeVR','valorVR','recebeCafe','valorCafe','cargo','obraId','endereco','cep','bairro','municipio','uf','telefone','entrada','saida','escala','diasFixos','recebeVT','tipoTransporte','cartao','tipoRot','status','admissao','desligamento','obs'];
     const d = {}; campos.forEach(k=>d[k] = $('f-'+k).value.trim());
     if(!d.nome){ toast('Informe o nome'); return; }
     d.nome = d.nome.replace(/\s+/g,' ').toUpperCase();
@@ -939,11 +981,17 @@ function renderResumo(){
     + k('Tipo integração', comVT.filter(c=>c.tipoRot==='INTEGRAÇÃO').length) + k('Economia c/ saldo', brl(econ)) + k('Solicitações pendentes', pend)
     + k('Tempo médio/dia', minH(media)) + k('Maior tempo/dia', maior&&maior.t? minH(maior.t)+'<div class="muted" style="font-size:11px">'+esc(maior.c.nome.split(' ')[0])+'</div>':'—')
     + k('Previsão '+ymNome(prox), brl(prev));
+  const xvr = itensVR(ym).filter(x=>naObra(x.c)), fvr = vrmeses[ym] && vrmeses[ym].fech;
+  $('d-kpis').innerHTML += k('VR + café do mês ('+ymNome(ym)+')', brl(xvr.reduce((s,x)=>s+x.total,0)), true) + k('VR', brl(xvr.reduce((s,x)=>s+x.totalVR,0))) + k('Café', brl(xvr.reduce((s,x)=>s+x.totalCafe,0))) + k('Fechamento VR', fvr ? (fvr.conferido?'✔ conferido':fvr.status) : 'não gerado')
+    + k('VT + VR + café do mês', brl(total + xvr.reduce((s,x)=>s+x.total,0)));
   const al = [];
   colabs.filter(naObra).sort(sortNome).forEach(c=>alertasColab(c).forEach(a=>al.push(`<div><b>${esc(c.nome)}</b>: ${esc(a)}</div>`)));
   itens.forEach(x=>x.alertas.filter(a=>!a.startsWith('Solicitação')).forEach(a=>al.push(`<div><b>${esc(x.c.nome)}</b> (${ymNome(ym)}): ${esc(a)}</div>`)));
   tarifas.forEach(t=>{ if(t.valor==null||t.valor==='') al.push(`<div>Tarifa <b>${esc(t.codigo)}</b> sem valor</div>`); else if(!t.atualizacao || diasEntre(t.atualizacao,hojeISO())>config.validadeTarifa) al.push(`<div>Tarifa <b>${esc(t.codigo)}</b> desatualizada – conferir</div>`); });
   if(pend) al.push(`<div>${pend} solicitação(ões) de VT pendente(s) em ${ymNome(ym)}</div>`);
+  colabs.filter(c=>c.status==='ATIVO' && !c.recebeVR && naObra(c)).forEach(c=>al.push(`<div><b>${esc(c.nome)}</b>: definir se recebe VR (Cadastro)</div>`));
+  itensVR(ym).filter(x=>naObra(x.c)).forEach(x=>x.alertas.filter(a=>!a.startsWith('Pedido')).forEach(a=>al.push(`<div><b>${esc(x.c.nome)}</b> (VR ${ymNome(ym)}): ${esc(a)}</div>`)));
+  if(vrmeses[ym] && !vrmeses[ym].fech.conferido) al.push(`<div>Fechamento do VR de ${ymNome(ym)} ainda não conferido</div>`);
   $('d-alertas').innerHTML = al.length ? `<div class="alert-list">${al.join('')}</div>` : '<div class="empty">✔ Nenhum alerta.</div>';
   const porObra = obras.slice().sort(sortNome).filter(o=>!obraSel||o.id===obraSel).map(o=>{ const xs = itens.filter(x=>x.c.obraId===o.id);
     return `<tr><td>${esc(o.nome)}</td><td class="n">${colabs.filter(c=>c.obraId===o.id&&c.status==='ATIVO').length}</td><td class="n">${brl(xs.reduce((s,x)=>s+x.mensal,0))}</td><td class="n">${brl(xs.reduce((s,x)=>s+x.total,0))}</td></tr>`; }).join('');
@@ -973,7 +1021,7 @@ function renderAjustes(){
   $('a-feriados').innerHTML = feriados.slice().sort((a,b)=>a.data.localeCompare(b.data)).filter(f=>f.data>=String(new Date().getFullYear()-1)).map(f=>`<div class="list-row" style="padding:6px 0"><div class="top-line"><span>${dataBR(f.data)} · ${esc(f.desc)}</span><button class="link" data-fer="${f.data}">remover</button></div></div>`).join('');
   $('a-feriados').querySelectorAll('[data-fer]').forEach(b=>b.onclick=()=>{ feriados = feriados.filter(f=>f.data!==b.dataset.fer); salvar('feriados'); renderTudo(); });
   const p = (k,l) => `<div><label>${l}</label><input data-cfg="${k}" value="${config[k]}" inputmode="decimal"></div>`;
-  $('a-params').innerHTML = `<div class="grid2">${p('diasRef','Dias de referência p/ comparar rotas')}${p('tempoMax','Tempo máximo aceitável por sentido (min)')}${p('embPorTarifa','Embarques por tarifa VT')}${p('saldoMax','Saldo máximo no cartão (R$)')}${p('validadeRota','Validade da pesquisa de rota (dias)')}${p('validadeTarifa','Validade da conferência de tarifa (dias)')}</div>`;
+  $('a-params').innerHTML = `<div class="grid2">${p('vrPadrao','Valor padrão do VR por dia (R$)')}${p('cafePadrao','Valor padrão do café por dia (R$)')}${p('diasRef','Dias de referência p/ comparar rotas')}${p('tempoMax','Tempo máximo aceitável por sentido (min)')}${p('embPorTarifa','Embarques por tarifa VT')}${p('saldoMax','Saldo máximo no cartão (R$)')}${p('validadeRota','Validade da pesquisa de rota (dias)')}${p('validadeTarifa','Validade da conferência de tarifa (dias)')}</div>`;
   $('a-params').querySelectorAll('[data-cfg]').forEach(i=>i.onchange=()=>{ config[i.dataset.cfg]=num(i.value)||0; salvar('config'); renderTudo(); });
   $('a-google').innerHTML = `<div class="note" style="margin-top:0">Com uma chave da <b>Routes API</b> do Google, o botão <b>Buscar rotas no Google</b> aparece na aba Rotas e preenche as 3 opções sozinho (linhas, tempo, embarques, caminhada e tarifas). Sem chave, use os botões "Maps: ida/volta".</div>
     <label>Chave da API (fica salva só no banco da Nupe, não no código)</label><input id="a-gkey" value="${esc(config.googleKey||'')}" placeholder="AIza…">
@@ -1022,7 +1070,7 @@ function pdfBase(orient, titulo, sub){
 function pdfRodape(doc){
   const n = doc.getNumberOfPages(), W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   for(let i=1;i<=n;i++){ doc.setPage(i); doc.setFontSize(7.5); doc.setTextColor(120);
-    doc.text('Nupe · Controle de Vale-Transporte · gerado em '+dataBR(hojeISO())+' '+new Date().toTimeString().slice(0,5), 10, H-6);
+    doc.text('Nupe · Benefícios (VT e VR) · gerado em '+dataBR(hojeISO())+' '+new Date().toTimeString().slice(0,5), 10, H-6);
     doc.text('Página '+i+' de '+n, W-10, H-6, {align:'right'}); }
 }
 const TAB = {theme:'grid', styles:{font:'helvetica', fontSize:8, cellPadding:1.6, lineColor:[200,200,200], lineWidth:0.1, textColor:[13,13,13]},
@@ -1081,7 +1129,7 @@ function relIndividualPDF(cid, de, ate){
   const c = colabs.find(x=>x.id===cid); if(!c) return;
   const hs = historicoColab(cid, de, ate);
   const periodo = de===ate ? ymNome(de) : ymNome(de)+' a '+ymNome(ate);
-  const doc = pdfBase('portrait', 'Vale-Transporte – '+c.nome, 'Extrato individual · '+periodo);
+  const doc = pdfBase('portrait', 'Benefícios – '+c.nome, 'Extrato individual (VT e VR) · '+periodo);
   const o = obraDe(c), of = oficial(c);
   doc.autoTable(Object.assign({}, TAB, { startY:28, theme:'plain', styles:{fontSize:8.5, cellPadding:1.2},
     body:[['Cargo',c.cargo||'—','Obra',o?o.nome:'—'],['Endereço',endColab(c)||'—','Horário',(c.entrada||'')+' às '+(c.saida||'')+' · '+(c.escala||'')],
@@ -1103,13 +1151,19 @@ function relIndividualPDF(cid, de, ate){
     foot: hs.length>1 ? [['TOTAL','','','','',brl(tot('mensal')),'',hs.reduce((s,r)=>s+r.x.diasLancar,0),brl(hs.reduce((s,r)=>s+(num(r.x.it.valorSolicitado)!=null?num(r.x.it.valorSolicitado):r.x.total),0)),'','']] : undefined,
     columnStyles:{1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'},7:{halign:'center'},8:{halign:'right',fontStyle:'bold'}} }));
   y = doc.lastAutoTable.finalY + 8;
+  const vrs = mesesEntre(de, ate).map(ym=>({ym, x:calcVR(ym,cid)})).filter(r=>r.x);
+  if(vrs.length){ doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text('Vale-Refeição e café', 10, y);
+    doc.autoTable(Object.assign({}, TAB, { startY:y+2, head:[['Mês','VR/dia','Café/dia','Dias','Desconto','Total VR','Total café','A pagar','Status','Motivo']],
+      body: vrs.map(r=>[ymNome(r.ym), r.x.valor?brl(r.x.valor):'—', r.x.cafe?brl(r.x.cafe):'—', r.x.dias, r.x.desconto?brl(r.x.desconto):'—', brl(r.x.totalVR), brl(r.x.totalCafe), brl(r.x.total), r.x.it.status||'Pendente', r.x.it.motivo||'']),
+      columnStyles:{1:{halign:'right'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center'},5:{halign:'center'},6:{halign:'right'},7:{halign:'right',fontStyle:'bold'}} }));
+    y = doc.lastAutoTable.finalY + 8; }
   const H = doc.internal.pageSize.getHeight(); if(y > H-60){ doc.addPage(); y = 20; }
   doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-  const txt = `Declaro que recebi o Vale-Transporte referente ao período acima, nos valores e quantidades indicados, para uso exclusivo no deslocamento residência–trabalho–residência, e que as informações de endereço e trajeto estão corretas. Comprometo-me a informar qualquer mudança de endereço ou de trajeto (Lei 7.418/85 e Decreto 10.854/21).`;
+  const txt = `Declaro que recebi ${vrs.length?'o Vale-Transporte, o Vale-Refeição e o café':'o Vale-Transporte'} referentes ao período acima, nos valores e quantidades indicados, para uso exclusivo no deslocamento residência–trabalho–residência, e que as informações de endereço e trajeto estão corretas. Comprometo-me a informar qualquer mudança de endereço ou de trajeto (Lei 7.418/85 e Decreto 10.854/21).`;
   doc.text(doc.splitTextToSize(txt, 190), 10, y); y += 22;
   doc.line(10, y, 95, y); doc.line(115, y, 200, y); doc.setFontSize(8);
   doc.text(c.nome, 10, y+4); doc.text('Assinatura do colaborador', 10, y+8); doc.text('Local e data: ____________________, ___/___/______', 115, y+4);
-  pdfRodape(doc); doc.save(`VT_${nomeArq(c.nome)}_${de}${de!==ate?'_a_'+ate:''}.pdf`);
+  pdfRodape(doc); doc.save(`Beneficios_${nomeArq(c.nome)}_${de}${de!==ate?'_a_'+ate:''}.pdf`);
 }
 function relIndividualXLSX(cid, de, ate){
   if(!libsOk('xlsx')) return;
@@ -1127,7 +1181,9 @@ function relIndividualXLSX(cid, de, ate){
   if(of){ const rt = [['Sentido','Modal','Ônibus','Metrô','CPTM','EMTU','Estações','Embarques','Tempo (min)','A pé (m)','Tarifas','Valor','Data pesquisa','Observação']]
     .concat([of.ida,of.volta].filter(Boolean).map(r=>[r.sentido,r.modal,r.onibus,r.metro,r.cptm,r.emtu,r.estacao,r.embarques,r.tempo,r.pe,(r.tarifas||[]).join(' + '),custoTrecho(r),dataBR(r.dataPesquisa),r.obs]));
     XLSX.utils.book_append_sheet(wb, planilha(rt, [8,18,20,22,20,8,40,10,10,9,30,10,12,40], [11]), 'Rota oficial'); }
-  XLSX.writeFile(wb, `VT_${nomeArq(c.nome)}_${de}${de!==ate?'_a_'+ate:''}.xlsx`);
+  const vrs = mesesEntre(de, ate).map(ym=>({ym, x:calcVR(ym,cid)})).filter(r=>r.x);
+  if(vrs.length) XLSX.utils.book_append_sheet(wb, planilha([['Mês','VR por dia','Café por dia','Dias úteis','Faltas','Férias','Afastamentos','Outros','Ajuste','Dias','Desconto','Total VR','Total café','A pagar','Status','Motivo']].concat(vrs.map(r=>[ymNome(r.ym),r.x.valor,r.x.cafe,r.x.du,+r.x.it.faltas||0,+r.x.it.ferias||0,+r.x.it.afast||0,+r.x.it.outros||0,+r.x.it.ajuste||0,r.x.dias,r.x.desconto,r.x.totalVR,r.x.totalCafe,r.x.total,r.x.it.status||'',r.x.it.motivo||''])), [10,10,10,9,7,7,11,7,7,7,10,11,11,11,11,34], [1,2,10,11,12,13]), 'VR e café');
+  XLSX.writeFile(wb, `Beneficios_${nomeArq(c.nome)}_${de}${de!==ate?'_a_'+ate:''}.xlsx`);
 }
 function renderRelatorios(){
   const selC = $('rel-colab').value;
@@ -1138,9 +1194,176 @@ function renderRelatorios(){
   $('rel-obra').innerHTML = `<option value="">Todas as obras</option>`+obras.slice().sort(sortNome).map(o=>`<option value="${o.id}" ${o.id===obSel?'selected':''}>${esc(o.nome)}</option>`).join('');
 }
 
+
+// ================= VALE-REFEIÇÃO =================
+const STATUS_VR = ['Pendente','Pedido feito','Creditado','Conferido'];
+const STATUS_FECH = ['Aberto','Conferido','Pedido realizado','Creditado'];
+function valorVR(c){ if(c.recebeVR!=='SIM') return 0; const v = num(c.valorVR); return v!=null ? v : (Number(config.vrPadrao)||0); }
+function valorCafe(c){ if(c.recebeCafe!=='SIM') return 0; const v = num(c.valorCafe); return v!=null ? v : (Number(config.cafePadrao)||0); }
+function elegivelVR(c, ym){
+  if(c.recebeVR!=='SIM' && c.recebeCafe!=='SIM') return false;
+  if(c.admissao && c.admissao.slice(0,7) > ym) return false;
+  if(c.status==='ATIVO') return true;
+  return !!(c.desligamento && c.desligamento.slice(0,7)===ym);
+}
+function vrMes(ym){ vrmeses[ym] = vrmeses[ym] || {itens:{}, fech:{status:'Aberto', conferido:false, excluidos:[]}}; if(!vrmeses[ym].fech) vrmeses[ym].fech={status:'Aberto',conferido:false,excluidos:[]}; return vrmeses[ym]; }
+function gerarVR(ym, silencioso){
+  const m = vrMes(ym); let add = 0;
+  const exc = new Set((m.fech.excluidos||[]).map(e=>e.id));
+  colabs.forEach(c=>{ if(elegivelVR(c,ym) && !m.itens[c.id] && !exc.has(c.id)){ m.itens[c.id] = {faltas:0, ferias:0, afast:0, outros:0, ajuste:0, desconto:0, motivo:'', status:'Pendente', dataPedido:'', dataCredito:'', obs:''}; add++; } });
+  salvar('vrmeses');
+  if(!silencioso) toast(add ? add+' funcionário(s) incluído(s)' : 'Lista já está atualizada');
+}
+function calcVR(ym, cid){
+  const m = vrmeses[ym]; const it = m && m.itens && m.itens[cid]; if(!it) return null;
+  const c = colabs.find(x=>x.id===cid); if(!c) return null;
+  const du = diasUteisBase(c, ym), n = k => Math.max(0, Number(it[k])||0);
+  const semDir = n('faltas')+n('ferias')+n('afast')+n('outros');
+  const dias = Math.max(0, du - semDir + (Number(it.ajuste)||0));
+  const valor = valorVR(c), cafe = valorCafe(c), bruto = r2(dias*valor), desconto = Math.max(0, Number(it.desconto)||0);
+  const totalVR = Math.max(0, r2(bruto - desconto)), totalCafe = r2(dias*cafe);
+  const total = r2(totalVR + totalCafe);
+  const x = {c, it, du, semDir, dias, valor, cafe, bruto, desconto, totalVR, totalCafe, total};
+  const a = [];
+  if(c.recebeVR!=='SIM' && c.recebeCafe!=='SIM') a.push('Marcado como NÃO recebe VR nem café no cadastro – exclua deste mês');
+  if(!valor && !cafe) a.push('Sem valor diário de VR/café');
+  if(c.recebeVR==='SIM' && !c.recebeCafe) a.push('Definir no cadastro se recebe café');
+  if(c.status!=='ATIVO') a.push('Desligado – dias proporcionais');
+  if((semDir || Number(it.ajuste) || desconto) && !(it.motivo||'').trim()) a.push('Informe o motivo do ajuste/desconto');
+  if(total>0 && (!it.status || it.status==='Pendente')) a.push('Pedido pendente');
+  x.alertas = a; return x;
+}
+function itensVR(ym){ const m = vrmeses[ym]; if(!m) return []; return Object.keys(m.itens).map(id=>calcVR(ym,id)).filter(Boolean).sort((a,b)=>sortNome(a.c,b.c)); }
+function desfazConferencia(ym){ const f = vrmeses[ym] && vrmeses[ym].fech; if(f && f.conferido){ f.conferido=false; f.conferidoPor=''; f.conferidoEm=''; if(f.status==='Conferido') f.status='Aberto'; toast('Houve alteração: a conferência foi desfeita'); } }
+function renderVR(){
+  const ym = $('vr-mes').value; if(!ym) return;
+  const m = vrmeses[ym];
+  if(!m){ $('vr-fech').innerHTML = `<div class="empty">Competência ainda não gerada. Toque em <b>Gerar / atualizar lista</b>.</div>`; $('vr-lista').innerHTML=''; return; }
+  const f = m.fech, xs = itensVR(ym);
+  const ativos = colabs.filter(c=>c.status==='ATIVO' || (c.desligamento && c.desligamento.slice(0,7)===ym));
+  const naoRecebem = ativos.filter(c=>c.recebeVR!=='SIM').sort(sortNome);
+  const tVR = r2(xs.reduce((s,x)=>s+x.totalVR,0)), tCafe = r2(xs.reduce((s,x)=>s+x.totalCafe,0));
+  const ajustes = xs.filter(x=>x.semDir || Number(x.it.ajuste) || x.desconto);
+  const total = r2(xs.reduce((s,x)=>s+x.total,0)), dias = xs.reduce((s,x)=>s+x.dias,0);
+  const pend = xs.filter(x=>x.alertas.length).length;
+  const kv = (l,v) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`;
+  const quem = email => esc((email||'').split('@')[0]);
+  $('vr-fech').innerHTML = `
+    <div class="kpis">
+      <div class="kpi hl"><div class="l">Total a pagar (VR + café) · ${ymNome(ym)}</div><div class="v">${brl(total)}</div></div>
+      ${kv('Total VR', brl(tVR))}${kv('Total café', brl(tCafe))}
+      ${kv('Funcionários cadastrados (ativos)', ativos.length)}${kv('Recebem VR', xs.filter(x=>x.valor>0).length)}${kv('Recebem café', xs.filter(x=>x.cafe>0).length)}${kv('Não recebem VR', naoRecebem.length)}${kv('Dias considerados', dias)}${kv('Com ajuste', ajustes.length)}
+    </div>
+    <details class="more"><summary>Incluídos (${xs.length})</summary><div class="note">${xs.map(x=>esc(x.c.nome)).join(' · ')||'—'}</div></details>
+    <details class="more"><summary>Não recebem VR (${naoRecebem.length})</summary><div class="note">${naoRecebem.map(c=>esc(c.nome)+(c.recebeVR?'':' <span style="color:var(--accent-dark)">(não definido)</span>')).join(' · ')||'—'}</div></details>
+    <details class="more"><summary>Excluídos do mês (${(f.excluidos||[]).length})</summary><div class="note">${(f.excluidos||[]).map(e=>`<div>${esc(e.nome)} – <i>${esc(e.motivo)}</i> <button class="link" data-reinc="${e.id}">incluir de volta</button></div>`).join('')||'—'}</div></details>
+    <details class="more" ${ajustes.length?'open':''}><summary>Ajustes realizados (${ajustes.length})</summary><div class="note">${ajustes.map(x=>{ const p=[]; const it=x.it;
+        if(+it.faltas) p.push(it.faltas+' falta(s)'); if(+it.ferias) p.push(it.ferias+' dia(s) de férias'); if(+it.afast) p.push(it.afast+' dia(s) de afastamento'); if(+it.outros) p.push(it.outros+' outro(s) dia(s) sem benefício');
+        if(+it.ajuste) p.push((it.ajuste>0?'+':'')+it.ajuste+' dia(s) de ajuste'); if(x.desconto) p.push('desconto '+brl(x.desconto));
+        return `<div><b>${esc(x.c.nome)}</b>: ${p.join(', ')}${it.motivo?' – <i>'+esc(it.motivo)+'</i>':' – <span style="color:var(--accent-dark)">sem motivo</span>'}</div>`; }).join('')||'—'}</div></details>
+    <div class="grid2" style="margin-top:8px"><div><label for="vr-status">Status do fechamento</label><select id="vr-status">${STATUS_FECH.map(t=>`<option ${f.status===t?'selected':''}>${t}</option>`).join('')}</select></div>
+      <div><label>Pendências</label><div style="padding:9px 0">${pend?`<span class="badge warn">${pend} funcionário(s) com aviso</span>`:'<span class="badge ok">nenhuma</span>'}</div></div></div>
+    <label class="chk ${f.conferido?'ok':''}"><input type="checkbox" id="vr-conf" ${f.conferido?'checked':''}> ${f.conferido?`✔ Fechamento conferido antes do pedido – por ${quem(f.conferidoPor)} em ${dataBR(f.conferidoEm)}`:'☐ Fechamento conferido antes do pedido'}</label>
+    ${!f.conferido && ['Pedido realizado','Creditado'].includes(f.status)?'<div class="alert-list">⚠ Pedido marcado como feito sem a conferência do fechamento.</div>':''}
+    <div class="note">Se algo for alterado depois da conferência, a marcação é desfeita automaticamente para conferir de novo.</div>`;
+  $('vr-conf').onchange = async e=>{
+    if(e.target.checked){ if(pend && !(await confirmar(`Há ${pend} funcionário(s) com aviso. Confirmar a conferência mesmo assim?`))){ renderVR(); return; }
+      const u = auth && auth.currentUser; f.conferido=true; f.conferidoPor = u&&u.email||'local'; f.conferidoEm = hojeISO(); if(f.status==='Aberto') f.status='Conferido'; }
+    else { f.conferido=false; f.conferidoPor=''; f.conferidoEm=''; if(f.status==='Conferido') f.status='Aberto'; }
+    salvar('vrmeses'); renderVR(); renderResumo(); };
+  $('vr-status').onchange = e=>{ f.status = e.target.value; salvar('vrmeses'); renderVR(); };
+  $('vr-fech').querySelectorAll('[data-reinc]').forEach(b=>b.onclick=()=>{ f.excluidos = f.excluidos.filter(e=>e.id!==b.dataset.reinc); desfazConferencia(ym); gerarVR(ym,true); renderVR(); });
+  const busca = ($('vr-busca').value||'').toLowerCase();
+  const vis = xs.filter(x=>!busca || x.c.nome.toLowerCase().includes(busca) || (obraDe(x.c)||{nome:''}).nome.toLowerCase().includes(busca));
+  const numIn = (fld, x, lab) => `<div><label>${lab}</label><input data-vf="${fld}" data-id="${x.c.id}" value="${Number(x.it[fld])||0}" inputmode="decimal"></div>`;
+  $('vr-lista').innerHTML = vis.length ? vis.map(x=>{ const o=obraDe(x.c), it=x.it;
+    return `<div class="list-row">
+      <div class="top-line"><div><div class="name">${esc(x.c.nome)} ${x.c.status!=='ATIVO'?'<span class="badge off">Inativo</span>':''}</div>
+        <div class="sub">${esc(o?o.nome:'sem obra')} · admissão ${dataBR(x.c.admissao)||'—'} · VR ${x.valor?brl(x.valor)+'/dia':'—'} · café ${x.cafe?brl(x.cafe)+'/dia':'—'}</div></div>
+        <div style="text-align:right"><div class="val">${brl(x.total)}</div><div class="sub">${x.dias} dias</div></div></div>
+      <div class="note">${x.du} dias úteis − ${x.semDir} sem direito ${Number(it.ajuste)?(it.ajuste>0?'+ ':'− ')+Math.abs(it.ajuste)+' ajuste ':''}= <b>${x.dias} dias</b> · VR ${x.dias} × ${brl(x.valor)}${x.desconto?' − desconto '+brl(x.desconto):''} = ${brl(x.totalVR)}${x.cafe?' · café '+x.dias+' × '+brl(x.cafe)+' = '+brl(x.totalCafe):''} → <b>${brl(x.total)}</b></div>
+      <details class="more" ${(x.semDir||Number(it.ajuste)||x.desconto)?'open':''}><summary>Faltas, férias, afastamentos e ajustes</summary>
+      <div class="grid3" style="margin-top:6px">
+        ${numIn('faltas',x,'Faltas')}${numIn('ferias',x,'Férias (dias)')}${numIn('afast',x,'Afastamentos')}${numIn('outros',x,'Outros dias sem direito')}${numIn('ajuste',x,'Ajuste (+/− dias)')}${numIn('desconto',x,'Desconto (R$)')}
+      </div>
+      <label>Motivo do ajuste / desconto</label><input data-vf="motivo" data-id="${x.c.id}" value="${esc(it.motivo||'')}" placeholder="ex.: férias de 10 a 14/10; 2 faltas sem atestado">
+      </details>
+      <details class="more"><summary>Pedido e crédito</summary>
+        <div class="grid2">
+          <div><label>Status</label><select data-vf="status" data-id="${x.c.id}">${STATUS_VR.map(t=>`<option ${it.status===t?'selected':''}>${t}</option>`).join('')}</select></div>
+          <div><label>Data do pedido</label><input type="date" data-vf="dataPedido" data-id="${x.c.id}" value="${it.dataPedido||''}"></div>
+          <div><label>Data do crédito</label><input type="date" data-vf="dataCredito" data-id="${x.c.id}" value="${it.dataCredito||''}"></div>
+          <div><label>Observação</label><input data-vf="obs" data-id="${x.c.id}" value="${esc(it.obs||'')}"></div>
+        </div>
+        <div class="row-btns"><button class="mini" data-vrexc="${x.c.id}">Excluir deste mês</button></div>
+      </details>
+      ${x.alertas.length?`<div class="alert-list">${x.alertas.map(a=>`<div>⚠ ${esc(a)}</div>`).join('')}</div>`:''}
+    </div>`; }).join('') : '<div class="empty">Ninguém nesta competência. Marque "Recebe VR = SIM" no Cadastro.</div>';
+}
+function onVRInput(e){
+  const el = e.target, fld = el.dataset.vf, id = el.dataset.id; if(!fld||!id) return;
+  const ym = $('vr-mes').value, it = vrmeses[ym].itens[id]; if(!it) return;
+  if(['faltas','ferias','afast','outros','ajuste','desconto'].includes(fld)) it[fld] = num(el.value)||0; else it[fld] = el.value;
+  if(fld==='status' && el.value==='Pedido feito' && !it.dataPedido) it.dataPedido = hojeISO();
+  if(fld==='status' && el.value==='Creditado' && !it.dataCredito) it.dataCredito = hojeISO();
+  if(e.type==='change'){ desfazConferencia(ym); salvar('vrmeses'); renderVR(); renderResumo(); } else salvar('vrmeses');
+}
+async function onVRClick(e){
+  const b = e.target.closest('button[data-vrexc]'); if(!b) return;
+  const ym = $('vr-mes').value, id = b.dataset.vrexc, c = colabs.find(x=>x.id===id);
+  abrirModal(`<h3>Excluir do VR de ${ymNome(ym)}</h3><div class="modal-msg">${esc(c.nome)} sai do fechamento deste mês (continua no Cadastro Geral).</div><label>Motivo da exclusão</label><input id="m-mot" placeholder="ex.: afastado pelo INSS o mês todo">
+    <div class="modal-actions"><button class="secondary" id="m-cancel">Cancelar</button><button class="primary" id="m-save">Excluir</button></div>`);
+  $('m-cancel').onclick = fecharModal;
+  $('m-save').onclick = ()=>{ const mot = $('m-mot').value.trim(); if(!mot){ toast('Informe o motivo'); return; }
+    const m = vrmeses[ym]; delete m.itens[id]; m.fech.excluidos = (m.fech.excluidos||[]).filter(x=>x.id!==id).concat([{id, nome:c.nome, motivo:mot, data:hojeISO()}]);
+    desfazConferencia(ym); logHist(id,'Outro','VR '+ymNome(ym),'incluído','excluído', mot); salvar('vrmeses'); fecharModal(); renderVR(); renderResumo(); };
+}
+// ---- relatórios VR ----
+function relVRPDF(ym, obraId){
+  if(!libsOk('pdf')) return;
+  const xs = itensVR(ym).filter(x=>!obraId||x.c.obraId===obraId); if(!xs.length){ avisar('Não há funcionários no VR de '+ymNome(ym)+'.'); return; }
+  const f = vrmeses[ym].fech, ob = obraId ? (obras.find(o=>o.id===obraId)||{}).nome : 'Todas as obras';
+  const doc = pdfBase('landscape', 'Fechamento VR + Café – '+ymNome(ym), ob+' · '+xs.length+' funcionários · status: '+f.status);
+  const t = k => xs.reduce((s,x)=>s+(x[k]||0),0);
+  doc.autoTable(Object.assign({}, TAB, { startY:28,
+    head:[['Funcionário','Obra','VR/dia','Café/dia','Dias úteis','Faltas','Férias','Afast.','Outros','Ajuste','Dias','Desconto','Total VR','Total café','A pagar','Motivo']],
+    body: xs.map(x=>[x.c.nome,(obraDe(x.c)||{}).nome||'',x.valor?brl(x.valor):'—',x.cafe?brl(x.cafe):'—',x.du,+x.it.faltas||0,+x.it.ferias||0,+x.it.afast||0,+x.it.outros||0,+x.it.ajuste||0,x.dias,x.desconto?brl(x.desconto):'—',brl(x.totalVR),brl(x.totalCafe),brl(x.total),x.it.motivo||'']),
+    foot:[['TOTAL','','','','','','','','','',t('dias'),brl(t('desconto')),brl(t('totalVR')),brl(t('totalCafe')),brl(t('total')),'']],
+    columnStyles:{0:{cellWidth:40},2:{halign:'right',cellWidth:16},3:{halign:'right',cellWidth:15},4:{halign:'center'},5:{halign:'center'},6:{halign:'center'},7:{halign:'center'},8:{halign:'center'},9:{halign:'center'},10:{halign:'center'},11:{halign:'right'},12:{halign:'right',cellWidth:20},13:{halign:'right',cellWidth:18},14:{halign:'right',fontStyle:'bold',cellWidth:22},15:{cellWidth:34}} }));
+  let y = doc.lastAutoTable.finalY + 6;
+  const ativos = colabs.filter(c=>c.status==='ATIVO'||(c.desligamento&&c.desligamento.slice(0,7)===ym));
+  const nao = ativos.filter(c=>c.recebeVR!=='SIM').map(c=>c.nome);
+  doc.autoTable(Object.assign({}, TAB, { startY:y, tableWidth:120, head:[['Resumo do fechamento','']], body:[
+    ['Funcionários cadastrados (ativos)', ativos.length], ['Recebem VR', xs.filter(x=>x.valor>0).length], ['Recebem café', xs.filter(x=>x.cafe>0).length], ['Não recebem VR', nao.length], ['Dias considerados', t('dias')], ['Total VR', brl(t('totalVR'))], ['Total café', brl(t('totalCafe'))], ['TOTAL A PAGAR (VR + café)', brl(t('total'))],
+    ['Conferido antes do pedido', f.conferido ? 'SIM – '+(f.conferidoPor||'').split('@')[0]+' em '+dataBR(f.conferidoEm) : 'NÃO'], ['Status', f.status]], columnStyles:{1:{halign:'right',fontStyle:'bold'}} }));
+  const yRes = doc.lastAutoTable.finalY;
+  const exc = (f.excluidos||[]);
+  doc.autoTable(Object.assign({}, TAB, { startY:y, margin:{left:140,right:10}, head:[['Excluídos do mês','Motivo']], body: exc.length?exc.map(e=>[e.nome,e.motivo]):[['—','']] }));
+  y = Math.max(doc.lastAutoTable.finalY, yRes) + 6;
+  if(nao.length){ doc.setFontSize(8); doc.setTextColor(90); doc.text(doc.splitTextToSize('Não recebem VR: '+nao.join(' · '), 275), 10, y); doc.setTextColor(13,13,13); }
+  pdfRodape(doc); doc.save(`VR_Cafe_Fechamento_${ym}.pdf`);
+}
+function relVRXLSX(ym, obraId){
+  if(!libsOk('xlsx')) return;
+  const xs = itensVR(ym).filter(x=>!obraId||x.c.obraId===obraId); if(!xs.length){ avisar('Não há funcionários no VR de '+ymNome(ym)+'.'); return; }
+  const f = vrmeses[ym].fech, wb = XLSX.utils.book_new();
+  const cab = ['Funcionário','CPF','Cargo','Obra','Admissão','VR por dia','Café por dia','Dias úteis','Faltas','Férias','Afastamentos','Outros sem direito','Ajuste','Dias considerados','VR bruto','Desconto','Total VR','Total café','TOTAL A PAGAR','Motivo','Status','Data pedido','Data crédito','Observação'];
+  const rows = xs.map(x=>[x.c.nome,x.c.cpf||'',x.c.cargo||'',(obraDe(x.c)||{}).nome||'',dataBR(x.c.admissao),x.valor,x.cafe,x.du,+x.it.faltas||0,+x.it.ferias||0,+x.it.afast||0,+x.it.outros||0,+x.it.ajuste||0,x.dias,x.bruto,x.desconto,x.totalVR,x.totalCafe,x.total,x.it.motivo||'',x.it.status||'Pendente',dataBR(x.it.dataPedido),dataBR(x.it.dataCredito),x.it.obs||'']);
+  const sm = k => r2(xs.reduce((s,x)=>s+(x[k]||0),0));
+  rows.push(['TOTAL','','','','','','','','','','','','',xs.reduce((s,x)=>s+x.dias,0),sm('bruto'),sm('desconto'),sm('totalVR'),sm('totalCafe'),sm('total'),'','','','','']);
+  XLSX.utils.book_append_sheet(wb, planilha([cab].concat(rows), [32,15,16,18,11,10,10,9,7,7,11,11,7,11,11,10,12,11,14,36,12,12,12,26], [5,6,14,15,16,17,18], true), 'VR e cafe '+ym);
+  const ativos = colabs.filter(c=>c.status==='ATIVO'||(c.desligamento&&c.desligamento.slice(0,7)===ym));
+  const fe = [['Competência', ymNome(ym)],['Status', f.status],['Conferido antes do pedido', f.conferido?'SIM':'NÃO'],['Conferido por', f.conferidoPor||''],['Conferido em', dataBR(f.conferidoEm)],
+    ['Funcionários cadastrados (ativos)', ativos.length],['Recebem VR', xs.filter(x=>x.valor>0).length],['Recebem café', xs.filter(x=>x.cafe>0).length],['Dias considerados', xs.reduce((s,x)=>s+x.dias,0)],['Total VR', sm('totalVR')],['Total café', sm('totalCafe')],['TOTAL A PAGAR (VR + café)', sm('total')],
+    [],['Excluídos do mês','Motivo']].concat((f.excluidos||[]).map(e=>[e.nome,e.motivo])).concat([[],['Não recebem VR','']]).concat(ativos.filter(c=>c.recebeVR!=='SIM').map(c=>[c.nome, c.recebeVR?'':'não definido']));
+  const ws = XLSX.utils.aoa_to_sheet(fe); ws['!cols']=[{wch:34},{wch:40}]; ['B10','B11','B12'].forEach(a=>{ if(ws[a]) ws[a].z='"R$" #,##0.00'; });
+  XLSX.utils.book_append_sheet(wb, ws, 'Fechamento');
+  XLSX.writeFile(wb, `VR_Cafe_Fechamento_${ym}.xlsx`);
+}
+
 // ================= BACKUP =================
 function exportar(){
-  const data = {versao:1, exportadoEm:new Date().toISOString(), obras, colabs, rotas, tarifas, feriados, config:Object.assign({},config,{googleKey:''}), meses, hist};
+  const data = {versao:1, exportadoEm:new Date().toISOString(), obras, colabs, rotas, tarifas, feriados, config:Object.assign({},config,{googleKey:''}), meses, hist, vrmeses};
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:'application/json'})); a.download = 'vt-backup-'+hojeISO()+'.json'; a.click();
 }
 async function importar(file){
@@ -1148,7 +1371,7 @@ async function importar(file){
   const substituir = colabs.length ? await confirmar(`Importar "${file.name}"?\n\nOs dados atuais (${colabs.length} colaboradores) serão SUBSTITUÍDOS pelos do arquivo. Faça um backup antes, se precisar.`) : true;
   if(!substituir) return;
   if(d.obras) obras = d.obras; if(d.colabs) colabs = d.colabs; if(d.rotas) rotas = d.rotas; if(d.tarifas && d.tarifas.length) tarifas = d.tarifas;
-  if(d.feriados && d.feriados.length) feriados = d.feriados; if(d.meses) meses = d.meses; if(d.hist) hist = d.hist;
+  if(d.feriados && d.feriados.length) feriados = d.feriados; if(d.meses) meses = d.meses; if(d.hist) hist = d.hist; if(d.vrmeses) vrmeses = d.vrmeses;
   if(d.config) config = Object.assign({}, config, d.config, {googleKey: config.googleKey || d.config.googleKey || ''});
   Object.keys(KEYS).forEach(salvar); renderTudo(); toast('Dados importados');
 }
@@ -1179,13 +1402,14 @@ $('c-lista').addEventListener('click', onCompraClick);
 $('btn-c-pdf').onclick = ()=>relConsolidadoPDF($('c-mes').value, '');
 $('btn-c-xlsx').onclick = ()=>relConsolidadoXLSX($('c-mes').value, '');
 let relTipo = 'cons';
-$('rel-tipo').querySelectorAll('button').forEach(b=>b.onclick=()=>{ relTipo=b.dataset.t; $('rel-tipo').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); $('rel-cons').style.display=relTipo==='cons'?'':'none'; $('rel-ind').style.display=relTipo==='ind'?'':'none'; });
-function relArgs(){ if(relTipo==='cons') return [$('rel-mes').value||$('c-mes').value, $('rel-obra').value]; let de=$('rel-de').value||$('c-mes').value, ate=$('rel-ate').value||de; if(ate<de){ const t=de; de=ate; ate=t; } return [$('rel-colab').value, de, ate]; }
-$('btn-rel-pdf').onclick = ()=>{ const a=relArgs(); relTipo==='cons' ? relConsolidadoPDF(...a) : relIndividualPDF(...a); };
-$('btn-rel-xlsx').onclick = ()=>{ const a=relArgs(); relTipo==='cons' ? relConsolidadoXLSX(...a) : relIndividualXLSX(...a); };
+$('rel-tipo').querySelectorAll('button').forEach(b=>b.onclick=()=>{ relTipo=b.dataset.t; $('rel-tipo').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); $('rel-cons').style.display=relTipo!=='ind'?'':'none'; $('rel-ind').style.display=relTipo==='ind'?'':'none'; });
+function relArgs(){ if(relTipo!=='ind') return [$('rel-mes').value||$('c-mes').value, $('rel-obra').value]; let de=$('rel-de').value||$('c-mes').value, ate=$('rel-ate').value||de; if(ate<de){ const t=de; de=ate; ate=t; } return [$('rel-colab').value, de, ate]; }
+$('btn-rel-pdf').onclick = ()=>{ const a=relArgs(); relTipo==='cons' ? relConsolidadoPDF(...a) : relTipo==='vr' ? relVRPDF(...a) : relIndividualPDF(...a); };
+$('btn-rel-xlsx').onclick = ()=>{ const a=relArgs(); relTipo==='cons' ? relConsolidadoXLSX(...a) : relTipo==='vr' ? relVRXLSX(...a) : relIndividualXLSX(...a); };
 $('r-colab').onchange = renderRotas; $('r-busca').oninput = renderTodasRotas;
 $('e-busca').oninput = renderEquipe;
 $('e-filtro').querySelectorAll('button').forEach(b=>b.onclick=()=>{ filtroEquipe=b.dataset.f; $('e-filtro').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); renderEquipe(); });
+$('e-filtro-b').querySelectorAll('button').forEach(b=>b.onclick=()=>{ filtroBenef=b.dataset.b; $('e-filtro-b').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); renderEquipe(); });
 $('btn-novo-colab').onclick = ()=>editarColab(null); $('btn-nova-obra').onclick = ()=>editarObra(null);
 $('d-mes').onchange = renderResumo; $('d-obra').onchange = renderResumo; $('h-colab').onchange = renderResumo;
 $('btn-hist-manual').onclick = histManual;
@@ -1193,6 +1417,12 @@ $('btn-nova-tarifa').onclick = ()=>editarTarifa(null);
 $('btn-add-feriado').onclick = ()=>{ const d=$('a-fer-data').value; if(!d){ toast('Escolha a data'); return; } feriados = feriados.filter(f=>f.data!==d).concat([{data:d, desc:$('a-fer-desc').value.trim()||'Feriado'}]); salvar('feriados'); $('a-fer-data').value=''; $('a-fer-desc').value=''; renderTudo(); };
 $('btn-sair').onclick = async ()=>{ if(auth && auth.currentUser && await confirmar('Sair deste aparelho? Vai ser preciso digitar e-mail e senha de novo.')) sair(); };
 $('btn-trocar-senha').onclick = async ()=>{ const u = auth && auth.currentUser; if(!u||!u.email) return; try{ await auth.sendPasswordResetEmail(u.email); avisar('Enviamos um link para '+u.email+' para criar uma nova senha. Confira também o spam.'); }catch(e){ avisar(msgErroLogin(e)); } };
+$('vr-mes').onchange = renderVR; $('vr-busca').oninput = renderVR;
+$('btn-vr-gerar').onclick = ()=>{ gerarVR($('vr-mes').value); renderVR(); renderResumo(); };
+$('vr-lista').addEventListener('input', e=>{ if(e.target.tagName==='INPUT') onVRInput(e); });
+$('vr-lista').addEventListener('change', onVRInput);
+$('vr-lista').addEventListener('click', onVRClick);
+$('btn-vr-pdf').onclick = ()=>relVRPDF($('vr-mes').value,''); $('btn-vr-xlsx').onclick = ()=>relVRXLSX($('vr-mes').value,'');
 $('btn-exportar').onclick = exportar; $('btn-importar').onclick = ()=>$('file-import').click();
 $('file-import').onchange = e=>{ const f=e.target.files[0]; if(f) importar(f); e.target.value=''; };
 
@@ -1201,11 +1431,12 @@ $('file-import').onchange = e=>{ const f=e.target.files[0]; if(f) importar(f); e
   await conectar();
   await carregar();
   setSync(modoLocal ? 'modo local (sem nuvem)' : 'conectado ✓');
-  const ym = ymAtual(1); $('c-mes').value = ym; $('d-mes').value = ym;
+  const ym = ymAtual(1); $('c-mes').value = ym; $('d-mes').value = ym; $('vr-mes').value = ym;
+  if(colabs.some(c=>c.recebeVR==='SIM') && !vrmeses[ym]) gerarVR(ym, true);
   if(colabs.length && !meses[ym]) gerarMes(ym, true);
   renderTudo();
 })();
-window.__vt = { relConsolidadoPDF, relConsolidadoXLSX, relIndividualPDF, relIndividualXLSX, get state(){ return {obras, colabs, rotas, tarifas, meses, hist, config}; }, calcItem, itensMes, infoRota, produtoDe, vtDiario, diasUteis, alertasColab, interpretarRota, gerarMes, renderTudo, setMes:(ym)=>{ $('c-mes').value=ym; $('d-mes').value=ym; memo={}; renderTudo(); } };
+window.__vt = { calcVR, itensVR, gerarVR, relVRPDF, relVRXLSX, relConsolidadoPDF, relConsolidadoXLSX, relIndividualPDF, relIndividualXLSX, get state(){ return {obras, colabs, rotas, tarifas, meses, hist, config}; }, calcItem, itensMes, infoRota, produtoDe, vtDiario, diasUteis, alertasColab, interpretarRota, gerarMes, renderTudo, setMes:(ym)=>{ $('c-mes').value=ym; $('d-mes').value=ym; $('vr-mes').value=ym; memo={}; renderTudo(); } };
 })();
 </script>
 </body>
