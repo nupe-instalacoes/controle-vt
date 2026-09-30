@@ -125,6 +125,10 @@
   .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;z-index:250;opacity:0;transition:opacity .2s;pointer-events:none;}
   .toast.show{opacity:1;}
   .search{margin-bottom:10px;}
+.fora-box{margin-top:14px;border:1px dashed #b9b9b9;border-radius:10px;padding:10px 12px;background:#fafafa}
+.fora-tit{font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.5px;font-size:14px;margin-bottom:6px}
+.fora-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #eee}
+.fora-row:first-of-type{border-top:0}
 </style>
 </head>
 <body>
@@ -530,7 +534,9 @@ function calcItem(ym, cid){
   const dias = Math.max(0, du + (Number(it.ajuste)||0));
   const mensal = r2(vd*dias);
   let saldoEst = 0;
-  const pym = ymPrev(ym), pit = meses[pym] && meses[pym].itens && meses[pym].itens[cid];
+  let pym = ymPrev(ym);
+  for(let k=0; k<12 && meses[pym] && !(meses[pym].itens||{})[cid] && (meses[pym].fora||[]).some(f=>f.id===cid); k++) pym = ymPrev(pym);
+  const pit = meses[pym] && meses[pym].itens && meses[pym].itens[cid];
   if(pit){
     const p = calcItem(pym, cid);
     if(p){
@@ -635,8 +641,9 @@ function marcaConf(it, sim){ const u = auth && auth.currentUser; it.conferido = 
 // ================= COMPRA =================
 function gerarMes(ym, silencioso){
   meses[ym] = meses[ym] || {itens:{}};
+  const fora = new Set((meses[ym].fora||[]).map(f=>f.id));
   let add = 0;
-  colabs.forEach(c=>{ if(elegivel(c,ym) && !meses[ym].itens[c.id]){ meses[ym].itens[c.id] = {ajuste:0, saldoInformado:null, diasReais:null, valorSolicitado:null, status:'Pendente', dataSolic:'', dataCredito:'', obs:''}; add++; } });
+  colabs.forEach(c=>{ if(elegivel(c,ym) && !meses[ym].itens[c.id] && !fora.has(c.id)){ meses[ym].itens[c.id] = {ajuste:0, saldoInformado:null, diasReais:null, valorSolicitado:null, status:'Pendente', dataSolic:'', dataCredito:'', obs:''}; add++; } });
   salvar('meses'); memo={};
   if(!silencioso) toast(add ? add+' colaborador(es) incluído(s)' : 'Lista já está atualizada');
 }
@@ -664,7 +671,11 @@ function renderCompra(){
     ${econ>0?`<div class="note">Economia com saldo que já estava no cartão: <b>${brl(econ)}</b></div>`:''}
     <div class="row-btns"><button class="secondary" id="btn-copiar-pedido">Copiar pedido (texto)</button></div>`;
   $('btn-copiar-pedido').onclick = ()=>{
-    const linhas = [`PEDIDO VT – ${ymNome(ym)}`].concat(itens.filter(x=>x.total>0).map(x=>`${x.c.nome} | ${x.produto}${x.produto.startsWith('Outros')?' ('+brl(x.vd)+'/dia)':''} | ${x.diasLancar} dias | ${brl(x.total)}`)).concat([`TOTAL: ${brl(tot)}`]);
+    const pend = itens.filter(x=>x.total>0 && x.it.complementar && (!x.it.status||x.it.status==='Pendente'));
+    const soCompl = pend.length && itens.filter(x=>x.total>0 && !x.it.complementar).every(x=>['Solicitado','Creditado'].includes(x.it.status));
+    const base = soCompl ? pend : itens.filter(x=>x.total>0);
+    const totP = base.reduce((s,x)=>s+x.total,0);
+    const linhas = [`PEDIDO VT${soCompl?' COMPLEMENTAR':''} – ${ymNome(ym)}`].concat(base.map(x=>`${x.c.nome} | ${x.produto}${x.produto.startsWith('Outros')?' ('+brl(x.vd)+'/dia)':''} | ${x.diasLancar} dias | ${brl(x.total)}${x.it.complementar&&!soCompl?' (complementar)':''}`)).concat([`TOTAL: ${brl(totP)}`]);
     const t = linhas.join('\n');
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast('Pedido copiado')).catch(()=>avisar(t));
   };
@@ -676,7 +687,7 @@ function renderCompra(){
     const o = obraDe(x.c); const it = x.it;
     if(it.conferido) return linhaConferida(x, `${esc(o?o.nome:'sem obra')} · ${esc(x.produto||'')} · ${x.diasLancar} dias`, 'data-reab-c');
     return `<div class="list-row ${x.c.tipoRot==='INTEGRAÇÃO'?'int':''}" data-row="${x.c.id}">
-      <div class="top-line"><div><div class="name">${esc(x.c.nome)} ${x.c.tipoRot==='INTEGRAÇÃO'?'<span class="badge int">Integração</span>':''} ${x.c.status!=='ATIVO'?'<span class="badge off">Inativo</span>':''}</div>
+      <div class="top-line"><div><div class="name">${esc(x.c.nome)} ${x.c.tipoRot==='INTEGRAÇÃO'?'<span class="badge int">Integração</span>':''} ${x.c.status!=='ATIVO'?'<span class="badge off">Inativo</span>':''} ${it.complementar?'<span class="badge warn">Remessa complementar</span>':''}</div>
         <div class="sub">${esc(o?o.nome:'sem obra')} · ${esc(x.produto||'sem produto')} · ${brl(x.vd)}/dia</div></div>
         <div style="text-align:right"><div class="val">${brl(x.total)}</div><div class="sub">${x.diasLancar} dias a lançar</div></div></div>
       <div class="grid3" style="margin-top:6px;">
@@ -694,11 +705,19 @@ function renderCompra(){
           <div><label>Dias REALMENTE trabalhados (ponto)</label><input data-f="diasReais" data-id="${x.c.id}" value="${it.diasReais!=null?it.diasReais:''}" placeholder="preencher no fim do mês" inputmode="numeric"></div>
           <div><label>Observação</label><input data-f="obs" data-id="${x.c.id}" value="${esc(it.obs||'')}"></div>
         </div>
-        <div class="row-btns"><button class="mini" data-act="rm" data-id="${x.c.id}">Tirar deste mês</button></div>
+        <div class="row-btns"><button class="mini" data-act="rm" data-id="${x.c.id}">Deixar fora desta remessa</button></div>
       </details>
       ${x.alertas.length?`<div class="alert-list">${x.alertas.map(a=>`<div>⚠ ${esc(a)}</div>`).join('')}</div>`:''}
       <div class="row-btns"><button class="mini ok" data-act="ok" data-id="${x.c.id}">✔ Marcar como conferido</button></div>
-    </div>`; }).join('') : `<div class="empty">${filtroConf.c==='pend'&&itens.length?'✔ Todos os colaboradores foram conferidos.':'Ninguém aqui.'}</div>`);
+    </div>`; }).join('') : `<div class="empty">${filtroConf.c==='pend'&&itens.length?'✔ Todos os colaboradores foram conferidos.':'Ninguém aqui.'}</div>`) + blocoFora(ym);
+}
+function blocoFora(ym){
+  const fora = (meses[ym] && meses[ym].fora) || [];
+  if(!fora.length) return '';
+  return `<div class="fora-box"><div class="fora-tit">⏸ Fora desta remessa (${fora.length})</div>
+    ${fora.map(f=>`<div class="fora-row" data-row="${f.id}"><div><b>${esc(f.nome)}</b><div class="sub">${esc(f.motivo)} · desde ${dataBR(f.data)}</div></div>
+      <button class="mini" data-vtinc="${f.id}">Incluir de volta</button></div>`).join('')}
+    <div class="note">Continua no Cadastro e volta automaticamente na lista do próximo mês. "Gerar / atualizar lista" não o recoloca nesta remessa.</div></div>`;
 }
 function onCompraInput(e){
   const el = e.target; const f = el.dataset.f, id = el.dataset.id; if(!f||!id) return;
@@ -710,13 +729,42 @@ function onCompraInput(e){
   salvar('meses');
   if(e.type==='change'){ const aid = id; setTimeout(()=>{ memo={}; preservar('view-compra', renderCompra, aid); renderResumo(); }, 0); }
 }
+function foraRemessa(ym, id){
+  const c = colabs.find(x=>x.id===id); if(!c) return;
+  abrirModal(`<h3>Deixar fora da remessa de ${ymNome(ym)}</h3><div class="modal-msg">${esc(c.nome)} não entra neste pedido de VT. Ele continua no Cadastro e pode ser incluído de volta depois (remessa complementar).</div>
+    <label>Motivo</label><input id="m-mot" placeholder="ex.: não está comparecendo">
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="m-vr" style="width:auto"> Tirar também do VR/café deste mês</label>
+    <div class="modal-actions"><button class="secondary" id="m-cancel">Cancelar</button><button class="primary" id="m-save">Deixar fora</button></div>`);
+  $('m-cancel').onclick = fecharModal;
+  $('m-save').onclick = ()=>{ const mot = $('m-mot').value.trim(); if(!mot){ toast('Informe o motivo'); return; }
+    const m = meses[ym]; delete m.itens[id];
+    m.fora = (m.fora||[]).filter(x=>x.id!==id).concat([{id, nome:c.nome, motivo:mot, data:hojeISO()}]);
+    logHist(id,'Outro','VT '+ymNome(ym),'na remessa','fora da remessa', mot); salvar('meses');
+    if($('m-vr').checked){ const v = vrMes(ym); if(v.itens[id]){ delete v.itens[id]; }
+      v.fech.excluidos = (v.fech.excluidos||[]).filter(x=>x.id!==id).concat([{id, nome:c.nome, motivo:mot, data:hojeISO()}]);
+      desfazConferencia(ym); salvar('vrmeses'); }
+    fecharModal(); memo={}; renderCompra(); renderVR(); renderResumo(); toast(c.nome.split(' ')[0]+' fora desta remessa'); };
+}
+async function incluirDeVolta(ym, id){
+  const m = meses[ym], f = (m.fora||[]).find(x=>x.id===id); if(!f) return;
+  const jaPedido = Object.values(m.itens).some(it=>['Solicitado','Creditado'].includes(it.status));
+  const compl = jaPedido ? true : await confirmar('O pedido principal deste mês já foi feito na SPTrans?\n\nOK = sim, vai numa remessa complementar\nCancelar = não, entra no pedido normal');
+  m.fora = m.fora.filter(x=>x.id!==id);
+  m.itens[id] = {ajuste:0, saldoInformado:null, diasReais:null, valorSolicitado:null, status:'Pendente', dataSolic:'', dataCredito:'', obs: compl?'Remessa complementar – '+f.motivo:'', complementar: !!compl};
+  logHist(id,'Outro','VT '+ymNome(ym),'fora da remessa', compl?'remessa complementar':'na remessa', ''); salvar('meses'); memo={};
+  if(filtroConf.c==='ok') filtroConf.c='pend';
+  renderCompra(); renderResumo();
+  const r = document.querySelector(`#c-lista [data-row="${id}"]`); if(r) r.scrollIntoView({block:'center'});
+  toast(compl ? 'Incluído como remessa complementar – ajuste os dias (use o Ajuste com negativo para os dias que já passaram)' : 'Incluído de volta');
+}
 async function onCompraClick(e){
+  const inc = e.target.closest('[data-vtinc]'); if(inc){ incluirDeVolta($('c-mes').value, inc.dataset.vtinc); return; }
   const rb = e.target.closest('[data-reab-c]'); if(rb){ const ym=$('c-mes').value, id=rb.dataset.reabC; marcaConf(meses[ym].itens[id], false); salvar('meses'); memo={}; if(filtroConf.c==='ok'){ filtroConf.c='pend'; } renderCompra(); const r=document.querySelector(`#c-lista [data-row="${id}"]`); if(r) r.scrollIntoView({block:'center'}); return; }
   const b = e.target.closest('button[data-act]'); if(!b) return;
   const ym = $('c-mes').value, id = b.dataset.id, it = meses[ym].itens[id];
   if(b.dataset.act==='aj-'){ it.ajuste=(Number(it.ajuste)||0)-1; }
   else if(b.dataset.act==='aj+'){ it.ajuste=(Number(it.ajuste)||0)+1; }
-  else if(b.dataset.act==='rm'){ if(!(await confirmar('Tirar este colaborador da compra deste mês?'))) return; delete meses[ym].itens[id]; }
+  else if(b.dataset.act==='rm'){ foraRemessa(ym, id); return; }
   else if(b.dataset.act==='ok'){ const x = calcItem(ym,id); const av = x ? x.alertas.filter(a=>!a.startsWith('Solicitação')) : []; if(av.length && !(await confirmar('Este colaborador tem aviso:\n• '+av.join('\n• ')+'\n\nMarcar como conferido mesmo assim?'))) return; marcaConf(it, true); toast('✔ '+(x?x.c.nome.split(' ')[0]:'')+' conferido'); }
   salvar('meses'); memo={}; preservar('view-compra', renderCompra, id); renderResumo();
 }
