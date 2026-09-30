@@ -643,7 +643,8 @@ function gerarMes(ym, silencioso){
   meses[ym] = meses[ym] || {itens:{}};
   const fora = new Set((meses[ym].fora||[]).map(f=>f.id)); ((vrmeses[ym]&&vrmeses[ym].fech&&vrmeses[ym].fech.excluidos)||[]).forEach(f=>fora.add(f.id));
   let add = 0;
-  colabs.forEach(c=>{ if(elegivel(c,ym) && !meses[ym].itens[c.id] && !fora.has(c.id)){ meses[ym].itens[c.id] = {ajuste:0, saldoInformado:null, diasReais:null, valorSolicitado:null, status:'Pendente', dataSolic:'', dataCredito:'', obs:''}; add++; } });
+  const jaPedido = Object.values(meses[ym].itens).some(it=>['Solicitado','Creditado'].includes(it.status));
+  colabs.forEach(c=>{ if(elegivel(c,ym) && !meses[ym].itens[c.id] && !fora.has(c.id)){ meses[ym].itens[c.id] = {ajuste:0, saldoInformado:null, diasReais:null, valorSolicitado:null, status:'Pendente', dataSolic:'', dataCredito:'', obs: jaPedido?'Remessa complementar – entrou depois do pedido':'', complementar: jaPedido}; add++; } });
   salvar('meses'); memo={};
   if(!silencioso) toast(add ? add+' colaborador(es) incluído(s)' : 'Lista já está atualizada');
 }
@@ -683,7 +684,7 @@ function renderCompra(){
   const cc = chipsConf('c-filtro', itens, 'c');
   const vis = itens.filter(x=>passaFiltro(x,'c')).filter(x=>!busca || x.c.nome.toLowerCase().includes(busca) || (obraDe(x.c)||{nome:''}).nome.toLowerCase().includes(busca));
   const progC = `<div class="note" style="margin-top:0">${cc.ok} de ${itens.length} conferidos</div><div class="prog"><div style="width:${itens.length?Math.round(cc.ok/itens.length*100):0}%"></div></div>`;
-  $('c-lista').innerHTML = progC + (vis.length ? vis.map(x=>{
+  $('c-lista').innerHTML = avisoFaltando(faltandoVT(ym),'btn-falta-vt') + progC + (vis.length ? vis.map(x=>{
     const o = obraDe(x.c); const it = x.it;
     if(it.conferido) return linhaConferida(x, `${esc(o?o.nome:'sem obra')} · ${esc(x.produto||'')} · ${x.diasLancar} dias`, 'data-reab-c');
     return `<div class="list-row ${x.c.tipoRot==='INTEGRAÇÃO'?'int':''}" data-row="${x.c.id}">
@@ -730,6 +731,26 @@ function onCompraInput(e){
   salvar('meses');
   if(e.type==='change'){ const aid = id; setTimeout(()=>{ memo={}; preservar('view-compra', renderCompra, aid); renderResumo(); }, 0); }
 }
+function mesesAbertos(){
+  const atual = hojeISO().slice(0,7), set = new Set([$('c-mes').value, $('vr-mes').value]);
+  Object.keys(meses).concat(Object.keys(vrmeses)).forEach(ym=>{ if(ym >= ymPrev(atual)) set.add(ym); });
+  return [...set].filter(Boolean).sort();
+}
+function incluirNovoNosMeses(c){
+  const onde = [];
+  mesesAbertos().forEach(ym=>{
+    if(meses[ym] && elegivel(c,ym) && !meses[ym].itens[c.id] && !estaFora(ym,c.id)){ gerarMes(ym,true); if(meses[ym].itens[c.id]) onde.push('VT '+ymNome(ym)); }
+    if(vrmeses[ym] && elegivelVR(c,ym) && !vrmeses[ym].itens[c.id] && !estaFora(ym,c.id)){ desfazConferencia(ym); gerarVR(ym,true); if(vrmeses[ym].itens[c.id]) onde.push('VR '+ymNome(ym)); }
+  });
+  memo = {}; return onde;
+}
+function faltandoVT(ym){ return meses[ym] ? colabs.filter(c=>elegivel(c,ym) && !meses[ym].itens[c.id] && !estaFora(ym,c.id)) : []; }
+function faltandoVR(ym){ return vrmeses[ym] ? colabs.filter(c=>elegivelVR(c,ym) && !vrmeses[ym].itens[c.id] && !estaFora(ym,c.id)) : []; }
+function avisoFaltando(lista, btnId){
+  if(!lista.length) return '';
+  return `<div class="alert-list" style="margin:0 0 10px"><div>⚠ Cadastrado(s) que ainda não está(ão) nesta lista: <b>${lista.map(c=>esc(c.nome)).join(', ')}</b></div>
+    <div class="row-btns" style="margin-top:6px"><button class="mini ok" id="${btnId}">+ Incluir agora</button></div></div>`;
+}
 function foraRemessa(ym, id){
   const c = colabs.find(x=>x.id===id); if(!c) return;
   abrirModal(`<h3>Deixar fora de ${ymNome(ym)}</h3><div class="modal-msg">${esc(c.nome)} sai do <b>VT</b> e do <b>VR/café</b> deste mês. Continua no Cadastro e volta sozinho no próximo mês. Se precisar, dá para incluir de volta depois.</div>
@@ -767,6 +788,7 @@ async function incluirDeVolta(ym, id){
   toast(compl ? 'Incluído de volta (VT como remessa complementar – ajuste os dias que já passaram)' : 'Incluído de volta no VT e no VR');
 }
 async function onCompraClick(e){
+  if(e.target.id==='btn-falta-vt'){ const ym=$('c-mes').value, n=faltandoVT(ym).length; gerarMes(ym,true); memo={}; if(filtroConf.c==='ok') filtroConf.c='pend'; renderCompra(); renderResumo(); toast(n+' incluído(s) no VT'); return; }
   const inc = e.target.closest('[data-vtinc]'); if(inc){ incluirDeVolta($('c-mes').value, inc.dataset.vtinc); return; }
   const rb = e.target.closest('[data-reab-c]'); if(rb){ const ym=$('c-mes').value, id=rb.dataset.reabC; marcaConf(meses[ym].itens[id], false); salvar('meses'); memo={}; if(filtroConf.c==='ok'){ filtroConf.c='pend'; } renderCompra(); const r=document.querySelector(`#c-lista [data-row="${id}"]`); if(r) r.scrollIntoView({block:'center'}); return; }
   const b = e.target.closest('button[data-act]'); if(!b) return;
@@ -1038,7 +1060,9 @@ function editarColab(c){
       }});
       Object.assign(c,d);
     }
-    salvar('colabs'); fecharModal(); renderTudo(); toast('Salvo');
+    salvar('colabs');
+    const inc = incluirNovoNosMeses(c);
+    fecharModal(); renderTudo(); toast(inc.length ? 'Salvo e incluído em: '+inc.join(', ') : 'Salvo');
   };
 }
 function editarObra(o){
@@ -1375,7 +1399,7 @@ function renderVR(){
   const cv = chipsConf('vr-filtro', xs, 'vr');
   const vis = xs.filter(x=>passaFiltro(x,'vr')).filter(x=>!busca || x.c.nome.toLowerCase().includes(busca) || (obraDe(x.c)||{nome:''}).nome.toLowerCase().includes(busca));
   const numIn = (fld, x, lab) => `<div><label>${lab}</label><input data-vf="${fld}" data-id="${x.c.id}" value="${Number(x.it[fld])||0}" inputmode="decimal"></div>`;
-  $('vr-lista').innerHTML = `<div class="note" style="margin-top:0">${cv.ok} de ${xs.length} conferidos</div><div class="prog"><div style="width:${xs.length?Math.round(cv.ok/xs.length*100):0}%"></div></div>` + (vis.length ? vis.map(x=>{ const o=obraDe(x.c), it=x.it;
+  $('vr-lista').innerHTML = avisoFaltando(faltandoVR($('vr-mes').value),'btn-falta-vr') + `<div class="note" style="margin-top:0">${cv.ok} de ${xs.length} conferidos</div><div class="prog"><div style="width:${xs.length?Math.round(cv.ok/xs.length*100):0}%"></div></div>` + (vis.length ? vis.map(x=>{ const o=obraDe(x.c), it=x.it;
     if(it.conferido) return linhaConferida(x, `${esc(o?o.nome:'sem obra')} · ${x.dias} dias · VR ${brl(x.totalVR)}${x.cafe?' + café '+brl(x.totalCafe):''}${(x.semDir||Number(it.ajuste)||x.desconto)?' · com ajuste':''}`, 'data-reab-vr');
     return `<div class="list-row" data-row="${x.c.id}">
       <div class="top-line"><div><div class="name">${esc(x.c.nome)} ${x.c.status!=='ATIVO'?'<span class="badge off">Inativo</span>':''}</div>
@@ -1409,6 +1433,7 @@ function onVRInput(e){
   if(e.type==='change'){ desfazConferencia(ym); salvar('vrmeses'); setTimeout(()=>{ preservar('view-vr', renderVR, id); renderResumo(); }, 0); } else salvar('vrmeses');
 }
 async function onVRClick(e){
+  if(e.target.id==='btn-falta-vr'){ const ym=$('vr-mes').value, n=faltandoVR(ym).length; desfazConferencia(ym); gerarVR(ym,true); if(filtroConf.vr==='ok') filtroConf.vr='pend'; renderVR(); renderResumo(); toast(n+' incluído(s) no VR'); return; }
   const ym0 = $('vr-mes').value;
   const rb = e.target.closest('[data-reab-vr]'); if(rb){ const id=rb.dataset.reabVr; marcaConf(vrmeses[ym0].itens[id], false); desfazConferencia(ym0); salvar('vrmeses'); if(filtroConf.vr==='ok') filtroConf.vr='pend'; renderVR(); const r=document.querySelector(`#vr-lista [data-row="${id}"]`); if(r) r.scrollIntoView({block:'center'}); return; }
   const ok = e.target.closest('button[data-vrok]'); if(ok){ const id=ok.dataset.vrok, x=calcVR(ym0,id); const av = x ? x.alertas.filter(a=>!a.startsWith('Pedido')) : [];
