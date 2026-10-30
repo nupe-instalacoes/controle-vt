@@ -457,6 +457,7 @@ const num = v => { if(v===''||v==null) return null; const n = Number(String(v).r
 const r2 = n => Math.round((Number(n)||0)*100)/100;
 function hojeISO(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function ymAtual(off){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+(off||0)); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function n0(v){ return Number(v)>0; }
 function ymProx(ym){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
 function ymPrev(ym){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m-2,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
 function ymNome(ym){ const [y,m]=ym.split('-').map(Number); return ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][m-1]+'/'+y; }
@@ -596,7 +597,7 @@ function calcItem(ym, cid){
       const credPrev = num(pit.valorSolicitado)!=null ? num(pit.valorSolicitado) : p.total;
       const dr = diasReaisEf(pym, cid, p.dias);
       const usoPrev = r2(p.vd * (dr.v!=null ? dr.v : p.dias));
-      saldoEst = Math.max(0, r2(p.saldo + credPrev - usoPrev)); var saldoPonto = dr.v!=null && saldoEst>0;
+      saldoEst = r2(p.saldo + credPrev - usoPrev); if(dr.v==null && saldoEst<0) saldoEst = 0; var saldoPonto = dr.v!=null && saldoEst!==0;
     }
   }
   const saldo = num(it.saldoInformado)!=null ? num(it.saldoInformado) : saldoEst;
@@ -720,6 +721,11 @@ function diasReaisEf(ym, cid, previsto){
   const r = resumoOc(ym, cid); if(r.n) return {v:Math.max(0, previsto + r.saldo), fonte:'ocorr'};
   return {v:null, fonte:''};
 }
+function mesOcorrDe(ymTela){ const h = hojeISO().slice(0,7); return h > ymTela ? ymPrev(ymTela) : h; }
+function linhaOcAplicada(ym, cid, extraAviso){
+  const pym = ymPrev(ym), r = resumoOc(pym, cid);
+  return r.n ? `<div class="oc-linha">📅 Ocorrências de ${ymNome(pym)} aplicadas neste pedido: ${textoOc(r)}${extraAviso&&r.menos?'<div class="neg">⚠ Ajuste negativo + faltas nas ocorrências: confira para não descontar duas vezes</div>':''}</div>` : '';
+}
 function abrirOcorr(cid, ym){
   const c = colabs.find(x=>x.id===cid); if(!c) return;
   const desenhar = () => {
@@ -736,7 +742,7 @@ function abrirOcorr(cid, ym){
           <div><label>Observação</label><input id="oc-obs" placeholder="opcional"></div>
         </div>
         <button class="primary" id="oc-add" style="margin-top:8px">Lançar</button></div>
-      <div class="note">Vale para o <b>VT</b> (os dias trabalhados de verdade entram no ponto e a sobra é descontada no pedido do mês seguinte) e para o <b>VR/café</b> do mesmo mês.</div>
+      <div class="note">As ocorrências de ${ymNome(ym)} ajustam os pedidos de <b>${ymNome(ymProx(ym))}</b> (VT e VR/café, que são pagos adiantados): <b>falta desconta</b>, <b>dia extra soma</b>.</div>
       <div class="modal-actions"><button class="primary" id="m-cancel">Fechar</button></div>`);
     $('m-cancel').onclick = ()=>{ fecharModal(); memo={}; renderCompra(); renderVR(); renderResumo(); };
     $('oc-mes').onchange = e=>{ if(e.target.value){ ym = e.target.value; desenhar(); } };
@@ -748,7 +754,7 @@ function abrirOcorr(cid, ym){
       ocorr[ymO] = ocorr[ymO] || {}; ocorr[ymO][cid] = ocorr[ymO][cid] || [];
       ocorr[ymO][cid].push({id:uid(), data, tipo:$('oc-tipo').value, qtd, obs:$('oc-obs').value.trim(), por:(u&&u.email)||'', em:hojeISO()});
       salvar('ocorr'); memo={}; if(ymO!==ym) ym = ymO;
-      const vm = vrmeses[ymO]; if(vm && vm.itens[cid]) desfazConferencia(ymO);
+      const vm = vrmeses[ymProx(ymO)]; if(vm && vm.itens[cid]) desfazConferencia(ymProx(ymO));
       toast(tipoOc($('oc-tipo').value).nome+' lançada em '+dataBR(data)); desenhar();
     };
   };
@@ -783,18 +789,18 @@ function renderPonto(ym){
   }
   const xs = itensMes(pym).filter(x=>x.vd>0);
   const lanc = xs.filter(x=>diasReaisEf(pym, x.c.id, x.dias).v!=null);
-  let econ = 0;
+  let econ = 0, repor = 0;
   const linhas = xs.map(x=>{
     const dr = diasReaisEf(pym, x.c.id, x.dias), real = dr.v, prev = x.dias, rOc = resumoOc(pym, x.c.id);
     const dif = real==null ? null : prev - real; const val = dif==null ? 0 : r2(dif*x.vd);
-    if(val>0) econ = r2(econ+val);
-    const res = real==null ? '<span class="muted">—</span>' : (dif>0 ? `<span class="pos">sobra ${brl(val)}</span>` : (dif<0 ? `<span class="neg">faltou ${brl(-val)}</span>` : 'certo'));
+    if(val>0) econ = r2(econ+val); if(val<0) repor = r2(repor-val);
+    const res = real==null ? '<span class="muted">—</span>' : (dif>0 ? `<span class="pos">sobra ${brl(val)}</span>` : (dif<0 ? `<span class="neg">repor ${brl(-val)}</span>` : 'certo'));
     const dvd = Math.abs(x.vd - vtDiario(x.c)) > 0.005;
     return `<tr><td>${esc(x.c.nome)}${dvd?`<div class="sub">rota mudou: hoje ${brl(vtDiario(x.c))}/dia</div>`:''}</td><td class="n"><input class="pt-in pt-vd" data-ptv="${x.c.id}" value="${String(x.vd.toFixed(2)).replace('.',',')}" inputmode="decimal"></td><td class="n">${prev}</td><td class="n"><input class="pt-in" data-pt="${x.c.id}" value="${dr.fonte==='manual'?real:''}" inputmode="numeric" placeholder="${dr.fonte==='ocorr'?real:'?'}">${rOc.n?`<div class="sub"><button class="link" data-ocp="${x.c.id}">📅 ${rOc.saldo>0?'+':''}${rOc.saldo}</button></div>`:`<div class="sub"><button class="link" data-ocp="${x.c.id}">📅 lançar</button></div>`}</td><td class="n">${res}</td></tr>`;
   }).join('');
   const temVR = !!(vrmeses[pym] && Object.keys(vrmeses[pym].itens||{}).length);
-  el.innerHTML = `<details class="more" data-k="ponto-${pym}" ${lanc.length<xs.length?'open':''}><summary>${ymNome(pym)}: ${lanc.length} de ${xs.length} lançados${econ>0?` · <b class="pos">${brl(econ)} sobrando nos cartões</b>`:''}</summary>
-    <div class="note" style="margin-top:6px">Se você lançou as <b>📅 ocorrências</b> (faltas, sábados/domingos trabalhados…), o campo "Trabalhou" já vem calculado (número cinza) — só digite se quiser trocar. Ou digite os dias trabalhados de cada um em ${ymNome(pym)}. A sobra fica no cartão e entra como <b>saldo estimado</b> neste pedido de ${ymNome(ym)}, reduzindo o valor a carregar.</div>
+  el.innerHTML = `<details class="more" data-k="ponto-${pym}" ${lanc.length<xs.length?'open':''}><summary>${ymNome(pym)}: ${lanc.length} de ${xs.length} lançados${econ>0?` · <b class="pos">${brl(econ)} sobrando (desconta)</b>`:''}${repor>0?` · <b class="neg">${brl(repor)} de dias extras (soma)</b>`:''}</summary>
+    <div class="note" style="margin-top:6px">Se você lançou as <b>📅 ocorrências</b> (faltas, sábados/domingos trabalhados…), o campo "Trabalhou" já vem calculado (número cinza) — só digite se quiser trocar. Ou digite os dias trabalhados de cada um em ${ymNome(pym)}. <b>Faltas</b> deixam sobra no cartão, que é <b>descontada</b> deste pedido de ${ymNome(ym)}. <b>Dias extras</b> (sáb/dom/feriado) gastaram mais do que foi carregado, e a diferença é <b>somada</b> neste pedido.</div>
     <div style="overflow-x:auto"><table class="t pt-tab"><tr><th>Colaborador</th><th class="n">R$/dia em ${ymNome(pym).split('/')[0]}</th><th class="n">Previsto</th><th class="n">Trabalhou</th><th class="n">Resultado</th></tr>${linhas}</table></div>
     <div class="note">Se a condução mudou (ex.: era integração e agora é só ônibus), confira o <b>R$/dia</b> que valia em ${ymNome(pym)}. A sobra é calculada com o valor daquele mês.</div>
     <div class="row-btns">${temVR?`<button class="mini" id="btn-pt-vr">Copiar dias do VR de ${ymNome(pym)}</button>`:''}<button class="mini" id="btn-pt-prev">Todos trabalharam o previsto</button></div></details>`;
@@ -848,9 +854,9 @@ function renderCompra(){
       <div class="grid3" style="margin-top:6px;">
         <div><label>Dias úteis</label><div class="mono" style="padding:8px 0">${x.du}</div></div>
         <div><label>Ajuste (faltas/férias)</label><div class="stepper"><button data-act="aj-" data-id="${x.c.id}">−</button><input data-f="ajuste" data-id="${x.c.id}" value="${Number(it.ajuste)||0}" inputmode="numeric"><button data-act="aj+" data-id="${x.c.id}">+</button></div></div>
-        <div><label>Saldo no cartão</label><input data-f="saldoInformado" data-id="${x.c.id}" placeholder="est. ${brl(x.saldoEst)}" value="${it.saldoInformado!=null?it.saldoInformado:''}" inputmode="decimal"></div>
+        <div><label>Saldo no cartão</label><input data-f="saldoInformado" data-id="${x.c.id}" placeholder="${x.saldoEst<0?'a repor '+brl(-x.saldoEst):'est. '+brl(x.saldoEst)}" value="${it.saldoInformado!=null?it.saldoInformado:''}" inputmode="decimal"></div>
       </div>
-      <div class="note">${x.dias} dias × ${brl(x.vd)} = ${brl(x.mensal)} − saldo ${brl(x.saldo)}${x.saldoInformado?' (informado)':(x.saldoPonto?' (sobra pelo ponto)':' (estimado)')} → ${x.diasLancar} dias = <b>${brl(x.total)}</b></div>
+      <div class="note">${x.dias} dias × ${brl(x.vd)} = ${brl(x.mensal)} ${x.saldo<0?`+ <b>${brl(-x.saldo)}</b> a repor (dias extras do mês anterior)`:`− saldo ${brl(x.saldo)}${x.saldoInformado?' (informado)':(x.saldoPonto?' (sobra pelo ponto)':' (estimado)')}`} → ${x.diasLancar} dias = <b>${brl(x.total)}</b></div>
       <details class="more" data-k="sol-${x.c.id}"><summary>Solicitação e fechamento do mês</summary>
         <div class="grid2">
           <div><label>Status</label><select data-f="status" data-id="${x.c.id}">${STATUS_SOL.map(s=>`<option ${it.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
@@ -862,8 +868,8 @@ function renderCompra(){
         </div>
       </details>
       ${x.alertas.length?`<div class="alert-list">${x.alertas.map(a=>`<div>⚠ ${esc(a)}</div>`).join('')}</div>`:''}
-      ${(()=>{ const r = resumoOc(ym, x.c.id); return r.n ? `<div class="oc-linha">📅 Ocorrências em ${ymNome(ym)}: ${textoOc(r)} <span class="muted">(descontam no pedido de ${ymNome(ymProx(ym))})</span>${Number(it.ajuste)<0 && r.menos?'<div class="neg">⚠ Ajuste negativo + faltas nas ocorrências: confira para não descontar duas vezes</div>':''}</div>` : ''; })()}
-      <div class="row-btns"><button class="mini ok" data-act="ok" data-id="${x.c.id}">✔ Marcar como conferido</button><button class="mini" data-oc="${x.c.id}">📅 Ocorrências${resumoOc(ym,x.c.id).n?' ('+resumoOc(ym,x.c.id).n+')':''}</button><button class="mini" data-act="rm" data-id="${x.c.id}">⏸ Deixar fora deste mês</button></div>
+      ${linhaOcAplicada(ym, x.c.id, Number(it.ajuste)<0)}
+      <div class="row-btns"><button class="mini ok" data-act="ok" data-id="${x.c.id}">✔ Marcar como conferido</button><button class="mini" data-oc="${x.c.id}">📅 Ocorrências${resumoOc(mesOcorrDe(ym),x.c.id).n?' ('+resumoOc(mesOcorrDe(ym),x.c.id).n+')':''}</button><button class="mini" data-act="rm" data-id="${x.c.id}">⏸ Deixar fora deste mês</button></div>
     </div>`; }).join('') : `<div class="empty">${filtroConf.c==='pend'&&itens.length?'✔ Todos os colaboradores foram conferidos.':'Ninguém aqui.'}</div>`) + blocoFora(ym);
 }
 function blocoFora(ym){
@@ -956,7 +962,7 @@ async function incluirDeVolta(ym, id){
   toast(compl ? 'Incluído de volta (VT como remessa complementar – ajuste os dias que já passaram)' : 'Incluído de volta no VT e no VR');
 }
 async function onCompraClick(e){
-  const oc = e.target.closest('[data-oc]'); if(oc){ abrirOcorr(oc.dataset.oc, $('c-mes').value); return; }
+  const oc = e.target.closest('[data-oc]'); if(oc){ abrirOcorr(oc.dataset.oc, mesOcorrDe($('c-mes').value)); return; }
   if(e.target.id==='btn-falta-vt'){ const ym=$('c-mes').value, n=faltandoVT(ym).length; gerarMes(ym,true); memo={}; if(filtroConf.c==='ok') filtroConf.c='pend'; renderCompra(); renderResumo(); toast(n+' incluído(s) no VT'); return; }
   const inc = e.target.closest('[data-vtinc]'); if(inc){ incluirDeVolta($('c-mes').value, inc.dataset.vtinc); return; }
   const rb = e.target.closest('[data-reab-c]'); if(rb){ const ym=$('c-mes').value, id=rb.dataset.reabC; marcaConf(meses[ym].itens[id], false); salvar('meses'); memo={}; if(filtroConf.c==='ok'){ filtroConf.c='pend'; } renderCompra(); const r=document.querySelector(`#c-lista [data-row="${id}"]`); if(r) r.scrollIntoView({block:'center'}); return; }
@@ -1597,7 +1603,7 @@ function calcVR(ym, cid){
   const m = vrmeses[ym]; const it = m && m.itens && m.itens[cid]; if(!it) return null;
   const c = colabs.find(x=>x.id===cid); if(!c) return null;
   const du = diasUteisBase(c, ym), n = k => Math.max(0, Number(it[k])||0);
-  const oc = resumoOc(ym, cid);
+  const oc = resumoOc(ymPrev(ym), cid);
   const semDirManual = n('faltas')+n('ferias')+n('afast')+n('outros');
   const semDir = semDirManual + oc.menos;
   const dias = Math.max(0, du - semDir + (Number(it.ajuste)||0) + oc.extras);
@@ -1612,7 +1618,7 @@ function calcVR(ym, cid){
   if(c.recebeVR==='SIM' && !c.recebeCafe) a.push('Definir no cadastro se recebe café');
   if(c.status!=='ATIVO') a.push(['Pedido feito','Creditado'].includes(it.status) ? `Desligado em ${dataBR(c.desligamento)} depois do pedido – o crédito já foi feito; avalie o desconto na rescisão` : `Desligado em ${dataBR(c.desligamento)} – só os dias até o desligamento`);
   if((semDirManual || Number(it.ajuste) || desconto) && !(it.motivo||'').trim()) a.push('Informe o motivo do ajuste/desconto');
-  if(oc.n && (n('faltas') || Number(it.ajuste))) a.push('Tem faltas/ajuste digitados e também ocorrências lançadas – confira para não contar duas vezes');
+  if(oc.n && (n('faltas') || Number(it.ajuste))) a.push('Tem faltas/ajuste digitados e também ocorrências de '+ymNome(ymPrev(ym))+' – confira para não contar duas vezes');
   x.alertas = a; return x;
 }
 function itensVR(ym){ const m = vrmeses[ym]; if(!m) return []; return Object.keys(m.itens).map(id=>calcVR(ym,id)).filter(Boolean).sort((a,b)=>sortNome(a.c,b.c)); }
@@ -1681,8 +1687,8 @@ function renderVR(){
         </div>
       </details>
       ${x.alertas.length?`<div class="alert-list">${x.alertas.map(a=>`<div>⚠ ${esc(a)}</div>`).join('')}</div>`:''}
-      ${x.oc.n?`<div class="oc-linha">📅 Ocorrências em ${ymNome($('vr-mes').value)}: ${textoOc(x.oc)} <span class="muted">(já contadas acima)</span></div>`:''}
-      <div class="row-btns"><button class="mini ok" data-vrok="${x.c.id}">✔ Marcar como conferido</button><button class="mini" data-oc="${x.c.id}">📅 Ocorrências${x.oc.n?' ('+x.oc.n+')':''}</button><button class="mini" data-vrexc="${x.c.id}">⏸ Deixar fora deste mês</button></div>
+      ${linhaOcAplicada($('vr-mes').value, x.c.id, Number(it.ajuste)<0 || n0(it.faltas))}
+      <div class="row-btns"><button class="mini ok" data-vrok="${x.c.id}">✔ Marcar como conferido</button><button class="mini" data-oc="${x.c.id}">📅 Ocorrências${resumoOc(mesOcorrDe($('vr-mes').value),x.c.id).n?' ('+resumoOc(mesOcorrDe($('vr-mes').value),x.c.id).n+')':''}</button><button class="mini" data-vrexc="${x.c.id}">⏸ Deixar fora deste mês</button></div>
     </div>`; }).join('') : `<div class="empty">${filtroConf.vr==='pend'&&xs.length?'✔ Todos os funcionários foram conferidos. Agora marque o fechamento como conferido lá em cima.':'Ninguém aqui.'}</div>`) + blocoFora($('vr-mes').value);
 }
 function onVRInput(e){
@@ -1695,7 +1701,7 @@ function onVRInput(e){
   if(e.type==='change'){ desfazConferencia(ym); salvar('vrmeses'); setTimeout(()=>{ preservar('view-vr', renderVR, id); renderResumo(); }, 0); } else salvar('vrmeses');
 }
 async function onVRClick(e){
-  const oc = e.target.closest('[data-oc]'); if(oc){ abrirOcorr(oc.dataset.oc, $('vr-mes').value); return; }
+  const oc = e.target.closest('[data-oc]'); if(oc){ abrirOcorr(oc.dataset.oc, mesOcorrDe($('vr-mes').value)); return; }
   if(e.target.id==='btn-falta-vr'){ const ym=$('vr-mes').value, n=faltandoVR(ym).length; desfazConferencia(ym); gerarVR(ym,true); if(filtroConf.vr==='ok') filtroConf.vr='pend'; renderVR(); renderResumo(); toast(n+' incluído(s) no VR'); return; }
   const ym0 = $('vr-mes').value;
   const rb = e.target.closest('[data-reab-vr]'); if(rb){ const id=rb.dataset.reabVr; marcaConf(vrmeses[ym0].itens[id], false); desfazConferencia(ym0); salvar('vrmeses'); if(filtroConf.vr==='ok') filtroConf.vr='pend'; renderVR(); const r=document.querySelector(`#vr-lista [data-row="${id}"]`); if(r) r.scrollIntoView({block:'center'}); return; }
