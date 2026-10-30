@@ -701,8 +701,8 @@ function renderCompra(){
         <div class="grid2">
           <div><label>Status</label><select data-f="status" data-id="${x.c.id}">${STATUS_SOL.map(s=>`<option ${it.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
           <div><label>Valor solicitado</label><input data-f="valorSolicitado" data-id="${x.c.id}" value="${it.valorSolicitado!=null?it.valorSolicitado:''}" placeholder="${brl(x.total)}" inputmode="decimal"></div>
-          <div><label>Data da solicitação</label><input type="date" data-f="dataSolic" data-id="${x.c.id}" value="${it.dataSolic||''}"></div>
-          <div><label>Data do crédito</label><input type="date" data-f="dataCredito" data-id="${x.c.id}" value="${it.dataCredito||''}"></div>
+          <div><label>Data da solicitação</label><input type="date" min="2020-01-01" max="2099-12-31" data-f="dataSolic" data-id="${x.c.id}" value="${it.dataSolic||''}"></div>
+          <div><label>Data do crédito</label><input type="date" min="2020-01-01" max="2099-12-31" data-f="dataCredito" data-id="${x.c.id}" value="${it.dataCredito||''}"></div>
           <div><label>Dias REALMENTE trabalhados (ponto)</label><input data-f="diasReais" data-id="${x.c.id}" value="${it.diasReais!=null?it.diasReais:''}" placeholder="preencher no fim do mês" inputmode="numeric"></div>
           <div><label>Observação</label><input data-f="obs" data-id="${x.c.id}" value="${esc(it.obs||'')}"></div>
         </div>
@@ -724,6 +724,7 @@ function blocoFora(ym){
 function onCompraInput(e){
   const el = e.target; const f = el.dataset.f, id = el.dataset.id; if(!f||!id) return;
   const ym = $('c-mes').value; const it = meses[ym].itens[id]; if(!it) return;
+  if(el.type==='date'){ if(el.value && el.value.slice(0,4) < '2000') return; if(it[f]!==el.value){ it[f] = el.value; salvar('meses'); } return; }
   if(['ajuste','saldoInformado','diasReais','valorSolicitado'].includes(f)) it[f] = el.value.trim()===''? (f==='ajuste'?0:null) : num(el.value);
   else it[f] = el.value;
   if(f==='status' && el.value==='Solicitado' && !it.dataSolic) it.dataSolic = hojeISO();
@@ -1415,8 +1416,8 @@ function renderVR(){
       <details class="more" data-k="ped-${x.c.id}"><summary>Pedido e crédito</summary>
         <div class="grid2">
           <div><label>Status</label><select data-vf="status" data-id="${x.c.id}">${STATUS_VR.map(t=>`<option ${it.status===t?'selected':''}>${t}</option>`).join('')}</select></div>
-          <div><label>Data do pedido</label><input type="date" data-vf="dataPedido" data-id="${x.c.id}" value="${it.dataPedido||''}"></div>
-          <div><label>Data do crédito</label><input type="date" data-vf="dataCredito" data-id="${x.c.id}" value="${it.dataCredito||''}"></div>
+          <div><label>Data do pedido</label><input type="date" min="2020-01-01" max="2099-12-31" data-vf="dataPedido" data-id="${x.c.id}" value="${it.dataPedido||''}"></div>
+          <div><label>Data do crédito</label><input type="date" min="2020-01-01" max="2099-12-31" data-vf="dataCredito" data-id="${x.c.id}" value="${it.dataCredito||''}"></div>
           <div><label>Observação</label><input data-vf="obs" data-id="${x.c.id}" value="${esc(it.obs||'')}"></div>
         </div>
       </details>
@@ -1427,6 +1428,7 @@ function renderVR(){
 function onVRInput(e){
   const el = e.target, fld = el.dataset.vf, id = el.dataset.id; if(!fld||!id) return;
   const ym = $('vr-mes').value, it = vrmeses[ym].itens[id]; if(!it) return;
+  if(el.type==='date'){ if(el.value && el.value.slice(0,4) < '2000') return; if(it[fld]!==el.value){ it[fld] = el.value; salvar('vrmeses'); } return; }
   if(['faltas','ferias','afast','outros','ajuste','desconto'].includes(fld)) it[fld] = num(el.value)||0; else it[fld] = el.value;
   if(fld==='status' && el.value==='Pedido feito' && !it.dataPedido) it.dataPedido = hojeISO();
   if(fld==='status' && el.value==='Creditado' && !it.dataCredito) it.dataCredito = hojeISO();
