@@ -129,6 +129,16 @@
 .fora-tit{font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.5px;font-size:14px;margin-bottom:6px}
 .fora-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #eee}
 .fora-row:first-of-type{border-top:0}
+.seq{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:34px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;background:#fafafa;margin-bottom:6px}
+.seq-chip{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;background:#e9eef6;color:#1d3b66}
+.seq-chip.seq-R{background:#f6ece2;color:#8a4a0f}.seq-chip.seq-E{background:#eee;color:#444}
+.seq-arr{color:#999;font-size:12px}
+.seq-btns{margin-top:0}.seq-note{margin-top:4px}
+.line.cmp{font-size:12.5px}
+.pos{color:var(--good)} .neg{color:#b42318}
+.cmp-box{border-radius:10px;padding:10px 12px;margin:10px 0;background:#fff4ec;border:1px solid #f6c9a8;font-size:13.5px}
+.cmp-box.ok{background:#eef7f1;border-color:#bfe0cc}
+.pt-in{width:64px;text-align:right;padding:6px 8px}
 </style>
 </head>
 <body>
@@ -152,6 +162,10 @@
         <div><label>&nbsp;</label><button class="secondary" style="margin-top:0" id="btn-gerar-mes">Gerar / atualizar lista</button></div>
       </div>
       <div class="note">Entram automaticamente todos os colaboradores ativos que recebem VT (e quem foi desligado dentro do mês). Dias úteis já descontam fins de semana conforme a escala e os feriados.</div>
+    </div>
+    <div class="card" id="c-ponto-card">
+      <h2><span class="num">⏱</span> Ponto do mês anterior</h2>
+      <div id="c-ponto"></div>
     </div>
     <div class="card" id="c-resumo-card">
       <h2><span class="num">2</span> Pedido na Loja Virtual SPTrans</h2>
@@ -542,14 +556,14 @@ function calcItem(ym, cid){
     if(p){
       const credPrev = num(pit.valorSolicitado)!=null ? num(pit.valorSolicitado) : p.total;
       const usoPrev = r2(p.vd * (num(pit.diasReais)!=null ? num(pit.diasReais) : p.dias));
-      saldoEst = Math.max(0, r2(p.saldo + credPrev - usoPrev));
+      saldoEst = Math.max(0, r2(p.saldo + credPrev - usoPrev)); var saldoPonto = num(pit.diasReais)!=null && saldoEst>0;
     }
   }
   const saldo = num(it.saldoInformado)!=null ? num(it.saldoInformado) : saldoEst;
   const credito = Math.max(0, r2(mensal - saldo));
   const diasLancar = vd>0 ? Math.ceil(Math.round(credito/vd*1e6)/1e6) : 0;
   const total = r2(diasLancar*vd);
-  const res = {c, it, vd, du, dias, mensal, saldoEst, saldo, saldoInformado: num(it.saldoInformado)!=null, credito, diasLancar, total, economia:r2(mensal-total>0?mensal-total:0), produto: produtoDe(c)};
+  const res = {c, it, vd, du, dias, mensal, saldoEst, saldoPonto: typeof saldoPonto!=='undefined' && !!saldoPonto, saldo, saldoInformado: num(it.saldoInformado)!=null, credito, diasLancar, total, economia:r2(mensal-total>0?mensal-total:0), produto: produtoDe(c)};
   res.alertas = alertasItem(res);
   memo[key] = res; return res;
 }
@@ -571,6 +585,7 @@ function alertasColab(c){
       else if(diasEntre(o.dataPesquisa, hojeISO())>config.validadeRota) a.push('Rota desatualizada (pesquisa antiga)');
       const um = histUltimaMudanca(c.id); if(um && o.dataPesquisa && um>o.dataPesquisa) a.push('Rota desatualizada (endereço/obra/horário mudou)');
       if(c.tipoRot==='INTEGRAÇÃO' && !o.integracao) a.push('Tipo INTEGRAÇÃO, mas a rota oficial não tem integração');
+      [o.ida,o.volta].filter(Boolean).forEach(r=>{ const sq = (r.seq&&r.seq.length) ? r.seq : (unidadesSeq(seqInferida(r)).length<=2 ? seqInferida(r) : []); if(sq.length && !sq.includes('E')){ const au=tarifasAuto(sq); if(au.join()!==(r.tarifas||[]).join()) a.push(`${r.sentido}: tarifa diferente do trajeto (o certo seria ${brl(au.reduce((x,c)=>x+(tarifaValor(c)||0),0))}) – abra Editar e toque em Aplicar`); } });
       if(o.tempoDia > 2*config.tempoMax) a.push('Tempo de deslocamento acima do limite ('+minH(o.tempoDia)+'/dia)');
       [o.ida,o.volta].filter(Boolean).forEach(r=>{ if((Number(r.embarques)||0) > config.embPorTarifa*tarifasCobradas(r)) a.push(`${r.sentido}: embarques acima do permitido – falta tarifa`); });
       const m = melhores(c); if(m.barata && !m.barata.includes(o.n) && !c.justificativa) a.push('Rota oficial não é a mais barata – registre a justificativa');
@@ -583,7 +598,9 @@ function alertasItem(x){
   const a = [];
   if(x.c.recebeVT==='NÃO') a.push('Marcado como NÃO recebe VT no cadastro – tire deste mês');
   else if(!x.vd) a.push('Sem rota oficial – VT zerado');
-  if(x.c.status!=='ATIVO') a.push('Desligado – dias proporcionais');
+  if(x.c.status!=='ATIVO') a.push(['Solicitado','Creditado'].includes(x.it.status)
+      ? `Desligado em ${dataBR(x.c.desligamento)} depois do pedido – o crédito já foi carregado; avalie o desconto na rescisão`
+      : `Desligado em ${dataBR(x.c.desligamento)} – só os dias até o desligamento`);
   if(x.produto.startsWith('Outros')) a.push('Produto "Outros": digitar '+brl(x.vd)+' por dia na Loja Virtual');
   if(x.saldo + x.total > config.saldoMax) a.push('Saldo + crédito passa de '+brl(config.saldoMax)+' – a recarga pode travar');
   if(x.total>0 && (!x.it.status || x.it.status==='Pendente')) a.push('Solicitação pendente');
@@ -652,8 +669,34 @@ function itensMes(ym){
   if(!meses[ym]) return [];
   return Object.keys(meses[ym].itens).map(id=>calcItem(ym,id)).filter(Boolean).sort((a,b)=>sortNome(a.c,b.c));
 }
+function renderPonto(ym){
+  const pym = ymPrev(ym), el = $('c-ponto');
+  if(!meses[pym] || !Object.keys(meses[pym].itens||{}).length){
+    el.innerHTML = `<div class="note" style="margin-top:0">Quando ${ymNome(pym)} estiver no app, lance aqui os dias que cada um <b>realmente trabalhou</b> (pelo ponto). O que sobrou no cartão é descontado sozinho deste pedido.</div>`; return;
+  }
+  const xs = itensMes(pym).filter(x=>x.vd>0);
+  const lanc = xs.filter(x=>num(x.it.diasReais)!=null);
+  let econ = 0;
+  const linhas = xs.map(x=>{
+    const real = num(x.it.diasReais), prev = x.dias;
+    const dif = real==null ? null : prev - real; const val = dif==null ? 0 : r2(dif*x.vd);
+    if(val>0) econ = r2(econ+val);
+    const res = real==null ? '<span class="muted">—</span>' : (dif>0 ? `<span class="pos">sobra ${brl(val)}</span>` : (dif<0 ? `<span class="neg">faltou ${brl(-val)}</span>` : 'certo'));
+    return `<tr><td>${esc(x.c.nome)}</td><td class="n">${prev}</td><td class="n"><input class="pt-in" data-pt="${x.c.id}" value="${real==null?'':real}" inputmode="numeric" placeholder="?"></td><td class="n">${res}</td></tr>`;
+  }).join('');
+  const temVR = !!(vrmeses[pym] && Object.keys(vrmeses[pym].itens||{}).length);
+  el.innerHTML = `<details class="more" data-k="ponto-${pym}" ${lanc.length<xs.length?'open':''}><summary>${ymNome(pym)}: ${lanc.length} de ${xs.length} lançados${econ>0?` · <b class="pos">${brl(econ)} sobrando nos cartões</b>`:''}</summary>
+    <div class="note" style="margin-top:6px">Digite os dias trabalhados de cada um em ${ymNome(pym)}. A sobra fica no cartão e entra como <b>saldo estimado</b> neste pedido de ${ymNome(ym)}, reduzindo o valor a carregar.</div>
+    <table class="t"><tr><th>Colaborador</th><th class="n">Previsto</th><th class="n">Trabalhou</th><th class="n">Resultado</th></tr>${linhas}</table>
+    <div class="row-btns">${temVR?`<button class="mini" id="btn-pt-vr">Copiar dias do VR de ${ymNome(pym)}</button>`:''}<button class="mini" id="btn-pt-prev">Todos trabalharam o previsto</button></div></details>`;
+  const atual = () => { memo={}; preservar('view-compra', renderCompra, null); renderResumo(); };
+  el.querySelectorAll('[data-pt]').forEach(i=>i.onchange=()=>{ const it = meses[pym].itens[i.dataset.pt]; const v = i.value.trim(); it.diasReais = v===''?null:num(v); salvar('meses'); atual(); });
+  if($('btn-pt-vr')) $('btn-pt-vr').onclick = ()=>{ let n=0; xs.forEach(x=>{ const v = calcVR(pym, x.c.id); if(v && num(x.it.diasReais)==null){ x.it.diasReais = v.dias; n++; } }); salvar('meses'); atual(); toast(n?n+' preenchido(s) pelos dias do VR':'Nada a copiar (já preenchidos ou sem VR)'); };
+  $('btn-pt-prev').onclick = ()=>{ let n=0; xs.forEach(x=>{ if(num(x.it.diasReais)==null){ x.it.diasReais = x.dias; n++; } }); salvar('meses'); atual(); toast(n+' preenchido(s) com o previsto'); };
+}
 function renderCompra(){
   const ym = $('c-mes').value; if(!ym) return;
+  renderPonto(ym);
   const itens = itensMes(ym);
   if(!meses[ym]){
     $('c-resumo').innerHTML = `<div class="empty">Mês ainda não gerado. Toque em <b>Gerar / atualizar lista</b>.</div>`;
@@ -696,7 +739,7 @@ function renderCompra(){
         <div><label>Ajuste (faltas/férias)</label><div class="stepper"><button data-act="aj-" data-id="${x.c.id}">−</button><input data-f="ajuste" data-id="${x.c.id}" value="${Number(it.ajuste)||0}" inputmode="numeric"><button data-act="aj+" data-id="${x.c.id}">+</button></div></div>
         <div><label>Saldo no cartão</label><input data-f="saldoInformado" data-id="${x.c.id}" placeholder="est. ${brl(x.saldoEst)}" value="${it.saldoInformado!=null?it.saldoInformado:''}" inputmode="decimal"></div>
       </div>
-      <div class="note">${x.dias} dias × ${brl(x.vd)} = ${brl(x.mensal)} − saldo ${brl(x.saldo)}${x.saldoInformado?' (informado)':' (estimado)'} → ${x.diasLancar} dias = <b>${brl(x.total)}</b></div>
+      <div class="note">${x.dias} dias × ${brl(x.vd)} = ${brl(x.mensal)} − saldo ${brl(x.saldo)}${x.saldoInformado?' (informado)':(x.saldoPonto?' (sobra pelo ponto)':' (estimado)')} → ${x.diasLancar} dias = <b>${brl(x.total)}</b></div>
       <details class="more" data-k="sol-${x.c.id}"><summary>Solicitação e fechamento do mês</summary>
         <div class="grid2">
           <div><label>Status</label><select data-f="status" data-id="${x.c.id}">${STATUS_SOL.map(s=>`<option ${it.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
@@ -744,6 +787,17 @@ function incluirNovoNosMeses(c){
     if(vrmeses[ym] && elegivelVR(c,ym) && !vrmeses[ym].itens[c.id] && !estaFora(ym,c.id)){ desfazConferencia(ym); gerarVR(ym,true); if(vrmeses[ym].itens[c.id]) onde.push('VR '+ymNome(ym)); }
   });
   memo = {}; return onde;
+}
+// Desligado: sai dos meses seguintes ao desligamento que ainda não foram pedidos
+function tirarDesligado(c){
+  const onde = []; if(c.status!=='INATIVO' || !c.desligamento) return onde;
+  const ymD = c.desligamento.slice(0,7);
+  Object.keys(meses).filter(ym=>ym>ymD).forEach(ym=>{ const it = meses[ym].itens[c.id];
+    if(it && (!it.status || it.status==='Pendente')){ delete meses[ym].itens[c.id]; onde.push('VT '+ymNome(ym)); } });
+  Object.keys(vrmeses).filter(ym=>ym>ymD).forEach(ym=>{ const it = vrmeses[ym].itens[c.id];
+    if(it && (!it.status || it.status==='Pendente')){ delete vrmeses[ym].itens[c.id]; desfazConferencia(ym); onde.push('VR '+ymNome(ym)); } });
+  if(onde.length){ logHist(c.id,'Outro','Desligamento','', 'retirado de '+onde.join(', ')); salvar('meses'); salvar('vrmeses'); memo={}; }
+  return onde;
 }
 function faltandoVT(ym){ return meses[ym] ? colabs.filter(c=>elegivel(c,ym) && !meses[ym].itens[c.id] && !estaFora(ym,c.id)) : []; }
 function faltandoVR(ym){ return vrmeses[ym] ? colabs.filter(c=>elegivelVR(c,ym) && !vrmeses[ym].itens[c.id] && !estaFora(ym,c.id)) : []; }
@@ -838,6 +892,17 @@ function renderRotas(){
   $('r-maps-volta').onclick = ()=> window.open(mapsLink(oe, ce), '_blank');
   if($('r-google')) $('r-google').onclick = ()=> buscarGoogle(c);
   const m = melhores(c);
+  const ymRef = $('c-mes').value || hojeISO().slice(0,7);
+  const dm = diasUteis(c, ymRef) || config.diasRef;
+  const todas = rotasColab(c).filter(r=>r.custoDia>0);
+  const barata = todas.length ? todas.reduce((a,b)=>b.custoDia<a.custoDia||(b.custoDia===a.custoDia&&b.tempoDia<a.tempoDia)?b:a) : null;
+  const rapida = todas.length ? todas.reduce((a,b)=>b.tempoDia<a.tempoDia||(b.tempoDia===a.tempoDia&&b.custoDia<a.custoDia)?b:a) : null;
+  const compara = r => {
+    if(!barata || todas.length<2 || !r.custoDia) return '';
+    const dc = r2((r.custoDia-barata.custoDia)*dm), dt = r.tempoDia - barata.tempoDia;
+    if(r.n===barata.n) return rapida && rapida.n!==r.n ? `<div class="line cmp">Mais barata · gasta <b>${minH(r.tempoDia-rapida.tempoDia)}</b> a mais por dia que a Rota ${rapida.n}</div>` : '';
+    return `<div class="line cmp">${dc>0?`<b class="neg">+${brl(dc)}/mês</b>`:'mesmo custo'} vs Rota ${barata.n} · ${dt<0?`<b class="pos">economiza ${minH(-dt)}/dia</b> (${minH(-dt*dm)} no mês)`:(dt>0?`<b class="neg">${minH(dt)} a mais/dia</b>`:'mesmo tempo')}</div>`;
+  };
   const cards = [1,2,3].map(n=>{
     const r = infoRota(c,n);
     if(!r) return `<div class="rota-card" style="border-style:dashed"><h3>Rota ${n}</h3><div class="empty">Não cadastrada</div><button class="mini" data-edit="${n}">+ Cadastrar</button></div>`;
@@ -847,7 +912,9 @@ function renderRotas(){
       <h3>Rota ${n} ${isOf?'<span class="badge ok">✔ Oficial</span>':''} ${m.rapida&&m.rapida.includes(n)?'<span class="badge best">🏆 Mais rápida</span>':''} ${m.barata&&m.barata.includes(n)?'<span class="badge best">💲 Mais econômica</span>':''}</h3>
       <div class="big">${brl(r.custoDia)}<span class="muted" style="font-size:12px"> /dia</span></div>
       <div class="line"><b>${minH(r.tempoDia)}</b> por dia · ${r.transportesDia} transportes · ${r.peDia? (r.peDia/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})+' km a pé':''}</div>
-      <div class="line">${r.integracao?'<span class="badge int">Com integração</span>':'<span class="badge">Sem integração</span>'} · mês (${config.diasRef} dias): ${brl(r.custoDia*config.diasRef)}</div>
+      <div class="line">${r.integracao?'<span class="badge int">Com integração</span>':'<span class="badge">Sem integração</span>'} · mês (${dm} dias): <b>${brl(r.custoDia*dm)}</b></div>
+      ${compara(r)}
+      ${[r.ida,r.volta].filter(Boolean).some(x=>(Number(x.tempo)||0)>config.tempoMax)?`<div class="line"><span class="badge warn">Passa de ${minH(config.tempoMax)} em um sentido</span></div>`:''}
       <div class="line"><b>Ida:</b> ${desc(r.ida)}</div>
       <div class="line"><b>Volta:</b> ${desc(r.volta)}</div>
       ${[r.ida,r.volta].filter(x=>x&&x.obs).map(x=>`<div class="line muted">${esc(x.obs)}</div>`).join('')}
@@ -855,7 +922,14 @@ function renderRotas(){
       <div class="row-btns">${isOf?'':`<button class="mini dark" data-of="${n}">Definir como oficial</button>`}<button class="mini" data-edit="${n}">Editar</button></div>
     </div>`;
   }).join('');
-  $('r-comp').innerHTML = `<div class="rota-cards">${cards}</div>
+  let resumoCmp = '';
+  if(of && barata && todas.length>1){
+    const dc = r2((of.custoDia-barata.custoDia)*dm), dt = of.tempoDia-barata.tempoDia;
+    resumoCmp = of.n===barata.n
+      ? `<div class="cmp-box ok">✔ A rota oficial (Rota ${of.n}) é a mais barata: <b>${brl(of.custoDia*dm)}/mês</b>${rapida&&rapida.n!==of.n?` · a Rota ${rapida.n} seria ${minH(of.tempoDia-rapida.tempoDia)}/dia mais rápida por +${brl(r2((rapida.custoDia-of.custoDia)*dm))}/mês`:''}.</div>`
+      : `<div class="cmp-box">A rota oficial (Rota ${of.n}) custa <b>+${brl(dc)}/mês</b> (≈ ${brl(dc*12)}/ano) a mais que a Rota ${barata.n}${dt<0?`, mas economiza <b>${minH(-dt)} por dia</b> de deslocamento`:''}. ${c.justificativa?'Justificativa registrada.':'Registre a justificativa abaixo.'}</div>`;
+  }
+  $('r-comp').innerHTML = resumoCmp + `<div class="rota-cards">${cards}</div>
     ${of && m.barata && !m.barata.includes(of.n) ? `<div class="note">Justificativa da rota oficial: <input id="r-just" value="${esc(c.justificativa||'')}" placeholder="Ex.: a mais barata passa de 2h por sentido"></div>`:''}`;
   if($('r-just')) $('r-just').onchange = e=>{ c.justificativa = e.target.value; salvar('colabs'); renderRotas(); };
   $('r-comp').querySelectorAll('[data-of]').forEach(b=>b.onclick=()=>{
@@ -878,10 +952,10 @@ function renderTodasRotas(){
     const o = obraDe(c); if(busca && !(c.nome.toLowerCase().includes(busca) || (o&&o.nome.toLowerCase().includes(busca)))) return;
     const m = melhores(c);
     rotasColab(c).forEach(r=>{
-      linhas.push(`<tr style="${Number(c.rotaOficial)===r.n?'background:#F3F6FA;font-weight:600':''}"><td>${esc(c.nome)} ${c.tipoRot==='INTEGRAÇÃO'?'<span class="badge int">Int.</span>':''}</td><td>${r.n}</td><td>${esc(r.ida?transportesTxt(r.ida):'—')}</td><td>${r.integracao?'SIM':'NÃO'}</td><td class="n">${r.transportesDia}</td><td class="n">${minH(r.tempoDia)}</td><td class="n">${brl(r.custoDia)}</td><td>${m.rapida&&m.rapida.includes(r.n)?'🏆':''}${m.barata&&m.barata.includes(r.n)?'💲':''}${Number(c.rotaOficial)===r.n?' ✔':''}</td></tr>`);
+      linhas.push(`<tr style="${Number(c.rotaOficial)===r.n?'background:#F3F6FA;font-weight:600':''}"><td>${esc(c.nome)} ${c.tipoRot==='INTEGRAÇÃO'?'<span class="badge int">Int.</span>':''}</td><td>${r.n}</td><td>${esc(r.ida?transportesTxt(r.ida):'—')}</td><td>${r.integracao?'SIM':'NÃO'}</td><td class="n">${r.transportesDia}</td><td class="n">${minH(r.tempoDia)}</td><td class="n">${brl(r.custoDia)}</td><td class="n">${brl(r.custoDia*(diasUteis(c,$('c-mes').value||hojeISO().slice(0,7))||config.diasRef))}</td><td>${m.rapida&&m.rapida.includes(r.n)?'🏆':''}${m.barata&&m.barata.includes(r.n)?'💲':''}${Number(c.rotaOficial)===r.n?' ✔':''}</td></tr>`);
     });
   });
-  $('r-todas').innerHTML = linhas.length ? `<table class="t"><tr><th>Colaborador</th><th>Rota</th><th>Transportes (ida)</th><th>Integr.</th><th class="n">Transp./dia</th><th class="n">Tempo/dia</th><th class="n">Custo/dia</th><th></th></tr>${linhas.join('')}</table>` : '<div class="empty">Nenhuma rota.</div>';
+  $('r-todas').innerHTML = linhas.length ? `<table class="t"><tr><th>Colaborador</th><th>Rota</th><th>Transportes (ida)</th><th>Integr.</th><th class="n">Transp./dia</th><th class="n">Tempo/dia</th><th class="n">Custo/dia</th><th class="n">Custo/mês</th><th></th></tr>${linhas.join('')}</table>` : '<div class="empty">Nenhuma rota.</div>';
 }
 function formTrecho(r, s){
   const tar = r.tarifas||[];
@@ -901,22 +975,89 @@ function formTrecho(r, s){
       <div><label>Tempo (min)</label><input id="t-${s}-tempo" value="${r.tempo||''}" inputmode="numeric"></div>
       <div><label>A pé (m)</label><input id="t-${s}-pe" value="${r.pe||''}" inputmode="numeric"></div>
     </div>
+    <label>Trajeto na ordem (o app calcula a tarifa e a integração)</label>
+    <div class="seq" id="t-${s}-seq" data-seq="${seqInferida(r).join(',')}"></div>
+    <div class="row-btns seq-btns"><button class="mini" type="button" data-add="B" data-s="${s}">+ Ônibus SP</button><button class="mini" type="button" data-add="R" data-s="${s}">+ Metrô/Trem</button><button class="mini" type="button" data-add="E" data-s="${s}">+ Outra cidade/EMTU</button><button class="mini" type="button" data-add="X" data-s="${s}">Limpar</button></div>
+    <div class="note seq-note" id="t-${s}-auto"></div>
     <label>Tarifa de cada embarque (na ordem)</label>
     <div class="grid3">${[0,1,2,3].map(i=>`<select id="t-${s}-tar${i}">${optT(tar[i])}</select>`).join('')}</div>
     <div class="note">Regra do VT: cada tarifa cobrada vale ${config.embPorTarifa} embarques. Na integração, o 1º embarque leva INTEG-VT (ou SPTRANS-VT se forem 2 ônibus) e o seguinte INTEGRADO-0.</div>
     <label>Observação</label><input id="t-${s}-obs" value="${esc(r.obs||'')}">
   </div>`;
 }
+const SEQ_NOME = {B:'Ônibus SP', R:'Metrô/Trem', E:'Ônibus outra cidade/EMTU'};
+function seqInferida(r){
+  if(r.seq && r.seq.length) return r.seq.slice();
+  const cnt = t => (t||'').split(/[\/+,;]| e /).map(x=>x.trim()).filter(Boolean).length;
+  const nB = cnt(r.onibus), nR = (r.metro||r.cptm) ? 1 : 0, nE = cnt(r.emtu);
+  const seq = [];
+  if(nB) seq.push('B'); if(nR) seq.push('R'); for(let i=1;i<nB;i++) seq.push('B'); for(let i=0;i<nE;i++) seq.push('E');
+  return seq;
+}
+function unidadesSeq(seq){ const u=[]; seq.forEach(x=>{ if(!(x==='R' && u[u.length-1]==='R')) u.push(x); }); return u; }
+// Mesma regra da busca no Google: a cada 2 embarques (ônibus/trilhos) cobra 1 tarifa; ônibus+trilho = integração
+function tarifasAuto(seq){
+  const u = unidadesSeq(seq), tar = [];
+  let i = 0;
+  while(i < u.length){
+    if(u[i]==='E'){ tar.push('?'); i++; continue; }
+    const g = [u[i]]; if(i+1<u.length && u[i+1]!=='E') g.push(u[i+1]);
+    tar.push(g.includes('R')&&g.includes('B') ? 'INTEG-VT' : (g[0]==='R' ? 'TRILHOS-VT' : 'SPTRANS-VT'));
+    if(g.length>1) tar.push('INTEGRADO-0');
+    i += g.length;
+  }
+  return tar;
+}
+function modalSeq(seq){
+  const t = new Set(seq); const p = [t.has('B')?'Ônibus':'', t.has('R')?'Metrô/CPTM':'', t.has('E')?'EMTU':''].filter(Boolean);
+  const m = p.join(' + '); return {'Ônibus':'Ônibus','Metrô/CPTM':'Metrô + CPTM','Ônibus + Metrô/CPTM':'Ônibus + CPTM + Metrô','EMTU':'EMTU','Ônibus + EMTU':'Ônibus + EMTU','Metrô/CPTM + EMTU':'EMTU + Metrô/CPTM'}[m] || '';
+}
+function seqHTML(seq){ return seq.length ? seq.map(x=>`<span class="seq-chip seq-${x}">${SEQ_NOME[x]}</span>`).join('<span class="seq-arr">→</span>') : '<span class="muted">Toque nos botões abaixo, na ordem em que ele pega as conduções</span>'; }
+function textoTarifas(tar){
+  const v = tar.reduce((a,c)=>a+(c==='?'?0:(tarifaValor(c)||0)),0);
+  return `${tar.map(c=>c==='?'?'(escolher tarifa da outra cidade)':c).join(' + ')} = <b>${brl(v)}</b>${tar.includes('INTEG-VT')?' · <span class="badge int">com integração</span>':''}`;
+}
+function ligarTrajeto(s, trecho){
+  const box = $(`t-${s}-seq`); if(!box) return;
+  const tarAtual = () => [0,1,2,3].map(i=>$(`t-${s}-tar${i}`).value).filter(Boolean);
+  const aplicar = (seq) => {
+    const tar = tarifasAuto(seq);
+    [0,1,2,3].forEach(i=>{ const sel=$(`t-${s}-tar${i}`); const v=tar[i]; if(v==='?'){ if(['SPTRANS-VT','TRILHOS-VT','INTEG-VT','INTEGRADO-0'].includes(sel.value)) sel.value=''; } else sel.value = v||''; });
+    $(`t-${s}-emb`).value = unidadesSeq(seq).length || '';
+    const m = modalSeq(seq); if(m) $(`t-${s}-modal`).value = m;
+    atualizar();
+  };
+  const atualizar = () => {
+    const seq = box.dataset.seq ? box.dataset.seq.split(',') : [];
+    box.innerHTML = seqHTML(seq);
+    const auto = tarifasAuto(seq), atual = tarAtual();
+    const igual = auto.filter(x=>x!=='?').join() === atual.filter(x=>!(auto.includes('?') && !['SPTRANS-VT','TRILHOS-VT','INTEG-VT','INTEGRADO-0'].includes(x))).join();
+    const custo = r2(atual.reduce((a,c)=>a+(tarifaValor(c)||0),0));
+    $(`t-${s}-auto`).innerHTML = !seq.length ? '' : (igual
+      ? `✔ Tarifas pelo trajeto: ${textoTarifas(auto)}`
+      : `⚠ Pelo trajeto, o certo seria: ${textoTarifas(auto)} — hoje está ${brl(custo)}. <button class="link" data-apl="${s}">Aplicar</button>`);
+    const b = $(`t-${s}-auto`).querySelector('[data-apl]'); if(b) b.onclick = ()=>aplicar(seq);
+  };
+  document.querySelectorAll(`[data-add][data-s="${s}"]`).forEach(b=>b.onclick=()=>{
+    let seq = box.dataset.seq ? box.dataset.seq.split(',') : [];
+    if(b.dataset.add==='X') seq = []; else seq.push(b.dataset.add);
+    box.dataset.seq = seq.join(','); box.dataset.mexeu = '1';
+    aplicar(seq);
+  });
+  [0,1,2,3].forEach(i=>$(`t-${s}-tar${i}`).addEventListener('change', atualizar));
+  atualizar();
+}
 function lerTrecho(s, base){
   const v = id => $(`t-${s}-${id}`).value.trim();
   return Object.assign(base||{}, { modal:v('modal'), dataPesquisa:v('data'), onibus:v('onibus'), metro:v('metro'), cptm:v('cptm'), emtu:v('emtu'), estacao:v('estacao'),
-    embarques:num(v('emb'))||0, tempo:num(v('tempo'))||0, pe:num(v('pe'))||0, tarifas:[0,1,2,3].map(i=>$(`t-${s}-tar${i}`).value).filter(Boolean), obs:v('obs'), fonte:(base&&base.fonte)||'Pesquisa manual' });
+    embarques:num(v('emb'))||0, tempo:num(v('tempo'))||0, pe:num(v('pe'))||0, tarifas:[0,1,2,3].map(i=>$(`t-${s}-tar${i}`).value).filter(Boolean), seq: ($(`t-${s}-seq`).dataset.seq||'').split(',').filter(Boolean), obs:v('obs'), fonte:(base&&base.fonte)||'Pesquisa manual' });
 }
 function editarRota(c, n){
   const ida = rotaDe(c.id,n,'IDA') || {}, volta = rotaDe(c.id,n,'VOLTA') || {};
   abrirModal(`<h3>${esc(c.nome)} · Rota ${n}</h3>${formTrecho(ida,'IDA')}${formTrecho(volta,'VOLTA')}
     <div class="modal-actions"><button class="secondary" id="m-del">Excluir rota</button><button class="secondary" id="m-cancel">Cancelar</button><button class="primary" id="m-save">Salvar</button></div>`);
   $('m-cancel').onclick = fecharModal;
+  ligarTrajeto('IDA'); ligarTrajeto('VOLTA');
   $('m-del').onclick = async ()=>{ fecharModal(); if(!(await confirmar(`Excluir a rota ${n} de ${c.nome}?`))) return;
     rotas = rotas.filter(r=>!(r.colabId===c.id && r.num===n)); if(Number(c.rotaOficial)===n){ c.rotaOficial=null; salvar('colabs'); }
     logHist(c.id,'Alteração de rota','Rota '+n,'cadastrada','excluída'); salvar('rotas'); renderTudo(); };
@@ -950,7 +1091,7 @@ async function consultarGoogle(origem, destino, tipoHora, hora){
 }
 function interpretarRota(route){
   const steps = (route.legs||[]).flatMap(l=>l.steps||[]);
-  const on=[], me=[], cp=[], em=[], est=[]; let pe=0; const unidades=[];
+  const on=[], me=[], cp=[], em=[], est=[]; let pe=0; const unidades=[], seqG=[];
   steps.forEach(s=>{
     if(s.travelMode==='WALK'){ pe += s.distanceMeters||0; return; }
     const td = s.transitDetails; if(!td) return;
@@ -960,13 +1101,13 @@ function interpretarRota(route){
     if(trilho){ if(/CPTM|TREM|RAIL|TRAIN/i.test(tipo+' '+ag) && !/METR/i.test(ag)) cp.push(ln.name||nome); else me.push(ln.name||nome); }
     else if(/EMTU/i.test(ag)) em.push(nome); else on.push(nome);
     if(td.stopDetails && td.stopDetails.departureStop) est.push(td.stopDetails.departureStop.name);
-    const u = trilho?'R':'B'; if(!(u==='R' && unidades[unidades.length-1]==='R')) unidades.push(u);
+    const u = trilho?'R':'B'; seqG.push(/EMTU/i.test(ag)&&!trilho?'E':u); if(!(u==='R' && unidades[unidades.length-1]==='R')) unidades.push(u);
   });
   const tar=[]; for(let i=0;i<unidades.length;i+=2){ const g=unidades.slice(i,i+2); tar.push(g.includes('R')&&g.includes('B')?'INTEG-VT':(g[0]==='R'?'TRILHOS-VT':'SPTRANS-VT')); if(g.length>1) tar.push('INTEGRADO-0'); }
   const uniq = a => [...new Set(a.filter(Boolean))].join(' / ');
   const modal = [on.length?'Ônibus':'', cp.length?'CPTM':'', me.length?'Metrô':'', em.length?'EMTU':''].filter(Boolean).join(' + ') || 'Outro';
   return { modal: MODAIS.includes(modal)?modal:modal, onibus:uniq(on), metro:uniq(me), cptm:uniq(cp), emtu:uniq(em), estacao:uniq(est).slice(0,120), embarques:unidades.length,
-    tempo: Math.round((parseInt(route.duration)||0)/60), pe:Math.round(pe), tarifas:tar, dataPesquisa:hojeISO(), fonte:'Google Routes API', obs:em.length?'Conferir tarifa EMTU':'' };
+    tempo: Math.round((parseInt(route.duration)||0)/60), pe:Math.round(pe), tarifas:tar, seq:seqG, dataPesquisa:hojeISO(), fonte:'Google Routes API', obs:em.length?'Conferir tarifa EMTU':'' };
 }
 async function buscarGoogle(c){
   const o = obraDe(c); if(!o){ avisar('Vincule uma obra ao colaborador primeiro.'); return; }
@@ -1062,8 +1203,8 @@ function editarColab(c){
       Object.assign(c,d);
     }
     salvar('colabs');
-    const inc = incluirNovoNosMeses(c);
-    fecharModal(); renderTudo(); toast(inc.length ? 'Salvo e incluído em: '+inc.join(', ') : 'Salvo');
+    const inc = incluirNovoNosMeses(c), sai = tirarDesligado(c);
+    fecharModal(); renderTudo(); toast(sai.length ? 'Salvo · tirado de: '+sai.join(', ')+' (desligado)' : (inc.length ? 'Salvo e incluído em: '+inc.join(', ') : 'Salvo'));
   };
 }
 function editarObra(o){
@@ -1352,7 +1493,7 @@ function calcVR(ym, cid){
   if(c.recebeVR!=='SIM' && c.recebeCafe!=='SIM') a.push('Marcado como NÃO recebe VR nem café no cadastro – exclua deste mês');
   if(!valor && !cafe) a.push('Sem valor diário de VR/café');
   if(c.recebeVR==='SIM' && !c.recebeCafe) a.push('Definir no cadastro se recebe café');
-  if(c.status!=='ATIVO') a.push('Desligado – dias proporcionais');
+  if(c.status!=='ATIVO') a.push(['Pedido feito','Creditado'].includes(it.status) ? `Desligado em ${dataBR(c.desligamento)} depois do pedido – o crédito já foi feito; avalie o desconto na rescisão` : `Desligado em ${dataBR(c.desligamento)} – só os dias até o desligamento`);
   if((semDir || Number(it.ajuste) || desconto) && !(it.motivo||'').trim()) a.push('Informe o motivo do ajuste/desconto');
   x.alertas = a; return x;
 }
