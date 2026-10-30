@@ -586,7 +586,7 @@ function calcItem(ym, cid){
   const c = colabs.find(x=>x.id===cid); if(!c) return null;
   const vd = num(it.vdFix)!=null ? num(it.vdFix) : vtDiario(c), du = diasUteis(c, ym);
   const pymR = ymPrev(ym), pitR = meses[pymR] && meses[pymR].itens && meses[pymR].itens[cid];
-  const manualPrev = !!(pitR && num(pitR.diasReais)!=null), ocP = resumoOc(pymR, cid);
+  const ocP = resumoOc(pymR, cid), manualPrev = !!(pitR && num(pitR.diasReais)!=null) && !ocP.n;
   const ocAj = manualPrev ? 0 : ocP.saldo;
   const dias = Math.max(0, du + (Number(it.ajuste)||0) + ocAj);
   const mensal = r2(vd*dias);
@@ -720,6 +720,7 @@ function textoOc(r){
 }
 // Dias realmente trabalhados: o que foi digitado à mão, senão o previsto ajustado pelas ocorrências
 function diasReaisEf(ym, cid, previsto){
+  if(resumoOc(ym, cid).n) return {v:null, fonte:'ocorr'};
   const it = meses[ym] && meses[ym].itens[cid]; if(it && num(it.diasReais)!=null) return {v:num(it.diasReais), fonte:'manual'};
   return {v:null, fonte:''};
 }
@@ -806,11 +807,11 @@ function renderPonto(ym){
       res = rOc.saldo>0 ? `<span class="neg">+${rOc.saldo} dia(s) neste pedido</span>` : (rOc.saldo<0 ? `<span class="pos">${rOc.saldo} dia(s) neste pedido</span>` : 'empata');
     } else if(rOc.n && !atualX) res = '<span class="muted">fora deste pedido</span>';
     const dvd = Math.abs(x.vd - vtDiario(x.c)) > 0.005;
-    return `<tr><td>${esc(x.c.nome)}${dvd?`<div class="sub">rota mudou: hoje ${brl(vtDiario(x.c))}/dia</div>`:''}</td><td class="n"><input class="pt-in pt-vd" data-ptv="${x.c.id}" value="${String(x.vd.toFixed(2)).replace('.',',')}" inputmode="decimal"></td><td class="n">${prev}</td><td class="n"><button class="link" data-ocp="${x.c.id}">${rOc.n?`📅 ${rOc.saldo>0?'+':''}${rOc.saldo}`:'📅 lançar'}</button></td><td class="n"><input class="pt-in" data-pt="${x.c.id}" value="${real==null?'':real}" inputmode="numeric" placeholder="—"></td><td class="n">${res}</td></tr>`;
+    return `<tr><td>${esc(x.c.nome)}${dvd?`<div class="sub">rota mudou: hoje ${brl(vtDiario(x.c))}/dia</div>`:''}</td><td class="n"><input class="pt-in pt-vd" data-ptv="${x.c.id}" value="${String(x.vd.toFixed(2)).replace('.',',')}" inputmode="decimal"></td><td class="n">${prev}</td><td class="n"><button class="link" data-ocp="${x.c.id}">${rOc.n?`📅 ${rOc.saldo>0?'+':''}${rOc.saldo}`:'📅 lançar'}</button></td><td class="n">${rOc.n?'<span class="muted">pelas ocorr.</span>':`<input class="pt-in" data-pt="${x.c.id}" value="${real==null?'':real}" inputmode="numeric" placeholder="—">`}</td><td class="n">${res}</td></tr>`;
   }).join('');
   const resumo = [somados?`<b class="neg">+${somados} dia(s) somados</b>`:'', descontados?`<b class="pos">−${descontados} dia(s) descontados</b>`:'', econ>0?`<b class="pos">${brl(econ)} de sobra (desconta)</b>`:'', repor>0?`<b class="neg">${brl(repor)} a repor (soma)</b>`:''].filter(Boolean).join(' · ');
   el.innerHTML = `<details class="more" data-k="ponto-${pym}"><summary>${ymNome(pym)}${resumo?' · '+resumo:': sem ocorrências'}</summary>
-    <div class="note" style="margin-top:6px">As <b>📅 ocorrências</b> de ${ymNome(pym)} entram direto nos dias deste pedido de ${ymNome(ym)}: <b>falta desconta</b>, <b>dia extra (sáb/dom/feriado) soma</b>. A coluna "Trabalhou" é opcional: só use se preferir digitar o total de dias do ponto em vez de lançar ocorrências (aí vale o número digitado).</div>
+    <div class="note" style="margin-top:6px">As <b>📅 ocorrências</b> de ${ymNome(pym)} entram direto nos dias deste pedido de ${ymNome(ym)}: <b>falta desconta</b>, <b>dia extra (sáb/dom/feriado) soma</b>. A coluna "Trabalhou" é opcional e só aparece para quem não tem ocorrências: serve para digitar o total de dias do ponto, se preferir.</div>
     <div style="overflow-x:auto"><table class="t pt-tab"><tr><th>Colaborador</th><th class="n">R$/dia em ${ymNome(pym).split('/')[0]}</th><th class="n">Previsto</th><th class="n">Ocorr.</th><th class="n">Trabalhou</th><th class="n">Neste pedido</th></tr>${linhas}</table></div>
     <div class="note">Se a condução mudou (ex.: era integração e agora é só ônibus), confira o <b>R$/dia</b> que valia em ${ymNome(pym)} – usado quando você digita o "Trabalhou".</div></details>`;
   const atual = () => { memo={}; preservar('view-compra', renderCompra, null); renderResumo(); };
@@ -870,7 +871,7 @@ function renderCompra(){
           <div><label>Valor solicitado</label><input data-f="valorSolicitado" data-id="${x.c.id}" value="${it.valorSolicitado!=null?it.valorSolicitado:''}" placeholder="${brl(x.total)}" inputmode="decimal"></div>
           <div><label>Data da solicitação</label><input class="dt" data-f="dataSolic" data-id="${x.c.id}" value="${dataBR(it.dataSolic)}" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off"></div>
           <div><label>Data do crédito</label><input class="dt" data-f="dataCredito" data-id="${x.c.id}" value="${dataBR(it.dataCredito)}" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off"></div>
-          <div><label>Dias REALMENTE trabalhados (ponto)</label><input data-f="diasReais" data-id="${x.c.id}" value="${it.diasReais!=null?it.diasReais:''}" placeholder="preencher no fim do mês" inputmode="numeric"></div>
+          <div><label>Dias REALMENTE trabalhados (ponto)</label><input data-f="diasReais" data-id="${x.c.id}" value="${it.diasReais!=null?it.diasReais:''}" placeholder="${resumoOc(ym,x.c.id).n?'usa as 📅 ocorrências':'opcional – ou lance 📅 ocorrências'}" inputmode="numeric"></div>
           <div><label>Observação</label><input data-f="obs" data-id="${x.c.id}" value="${esc(it.obs||'')}"></div>
         </div>
       </details>
