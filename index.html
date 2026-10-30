@@ -585,7 +585,10 @@ function calcItem(ym, cid){
   const it = meses[ym] && meses[ym].itens && meses[ym].itens[cid]; if(!it) return null;
   const c = colabs.find(x=>x.id===cid); if(!c) return null;
   const vd = num(it.vdFix)!=null ? num(it.vdFix) : vtDiario(c), du = diasUteis(c, ym);
-  const dias = Math.max(0, du + (Number(it.ajuste)||0));
+  const pymR = ymPrev(ym), pitR = meses[pymR] && meses[pymR].itens && meses[pymR].itens[cid];
+  const manualPrev = !!(pitR && num(pitR.diasReais)!=null), ocP = resumoOc(pymR, cid);
+  const ocAj = manualPrev ? 0 : ocP.saldo;
+  const dias = Math.max(0, du + (Number(it.ajuste)||0) + ocAj);
   const mensal = r2(vd*dias);
   let saldoEst = 0;
   let pym = ymPrev(ym);
@@ -604,7 +607,7 @@ function calcItem(ym, cid){
   const credito = Math.max(0, r2(mensal - saldo));
   const diasLancar = vd>0 ? Math.ceil(Math.round(credito/vd*1e6)/1e6) : 0;
   const total = r2(diasLancar*vd);
-  const res = {c, it, vd, du, dias, mensal, saldoEst, saldoPonto: typeof saldoPonto!=='undefined' && !!saldoPonto, saldo, saldoInformado: num(it.saldoInformado)!=null, credito, diasLancar, total, economia:r2(mensal-total>0?mensal-total:0), produto: produtoDe(c)};
+  const res = {c, it, vd, du, dias, ocAj, ocIgnorado: manualPrev && ocP.n>0, mensal, saldoEst, saldoPonto: typeof saldoPonto!=='undefined' && !!saldoPonto, saldo, saldoInformado: num(it.saldoInformado)!=null, credito, diasLancar, total, economia:r2(mensal-total>0?mensal-total:0), produto: produtoDe(c)};
   res.alertas = alertasItem(res);
   memo[key] = res; return res;
 }
@@ -718,12 +721,12 @@ function textoOc(r){
 // Dias realmente trabalhados: o que foi digitado à mão, senão o previsto ajustado pelas ocorrências
 function diasReaisEf(ym, cid, previsto){
   const it = meses[ym] && meses[ym].itens[cid]; if(it && num(it.diasReais)!=null) return {v:num(it.diasReais), fonte:'manual'};
-  const r = resumoOc(ym, cid); if(r.n) return {v:Math.max(0, previsto + r.saldo), fonte:'ocorr'};
   return {v:null, fonte:''};
 }
 function mesOcorrDe(ymTela){ const h = hojeISO().slice(0,7); return h > ymTela ? ymPrev(ymTela) : h; }
-function linhaOcAplicada(ym, cid, extraAviso){
+function linhaOcAplicada(ym, cid, extraAviso, ignorado){
   const pym = ymPrev(ym), r = resumoOc(pym, cid);
+  if(r.n && ignorado) return `<div class="oc-linha">📅 Ocorrências de ${ymNome(pym)}: ${textoOc(r)} <div class="neg">Não aplicadas: você digitou os dias trabalhados de ${ymNome(pym)} no ponto (vale o que foi digitado). Apague o "Trabalhou" no quadro do ponto para usar as ocorrências.</div></div>`;
   return r.n ? `<div class="oc-linha">📅 Ocorrências de ${ymNome(pym)} aplicadas neste pedido: ${textoOc(r)}${extraAviso&&r.menos?'<div class="neg">⚠ Ajuste negativo + faltas nas ocorrências: confira para não descontar duas vezes</div>':''}</div>` : '';
 }
 function abrirOcorr(cid, ym){
@@ -785,31 +788,35 @@ function itensMes(ym){
 function renderPonto(ym){
   const pym = ymPrev(ym), el = $('c-ponto');
   if(!meses[pym] || !Object.keys(meses[pym].itens||{}).length){
-    el.innerHTML = `<div class="note" style="margin-top:0">Quando ${ymNome(pym)} estiver no app, lance aqui os dias que cada um <b>realmente trabalhou</b> (pelo ponto). O que sobrou no cartão é descontado sozinho deste pedido.</div>`; return;
+    const comOc = itensMes(ym).filter(x=>resumoOc(pym,x.c.id).n);
+    el.innerHTML = `<div class="note" style="margin-top:0">As <b>📅 ocorrências</b> de ${ymNome(pym)} (faltas, sáb/dom trabalhados…) entram direto nos dias deste pedido: falta desconta, dia extra soma.${comOc.length?' Já aplicadas para: '+comOc.map(x=>esc(x.c.nome.split(' ')[0])+' ('+(x.ocAj>0?'+':'')+x.ocAj+')').join(', ')+'.':''}</div>`; return;
   }
   const xs = itensMes(pym).filter(x=>x.vd>0);
-  const lanc = xs.filter(x=>diasReaisEf(pym, x.c.id, x.dias).v!=null);
-  let econ = 0, repor = 0;
+  let somados = 0, descontados = 0, econ = 0, repor = 0;
   const linhas = xs.map(x=>{
     const dr = diasReaisEf(pym, x.c.id, x.dias), real = dr.v, prev = x.dias, rOc = resumoOc(pym, x.c.id);
-    const dif = real==null ? null : prev - real; const val = dif==null ? 0 : r2(dif*x.vd);
-    if(val>0) econ = r2(econ+val); if(val<0) repor = r2(repor-val);
-    const res = real==null ? '<span class="muted">—</span>' : (dif>0 ? `<span class="pos">sobra ${brl(val)}</span>` : (dif<0 ? `<span class="neg">repor ${brl(-val)}</span>` : 'certo'));
+    const atualX = calcItem(ym, x.c.id);
+    let res = '<span class="muted">—</span>';
+    if(real!=null){
+      const dif = prev - real, val = r2(dif*x.vd);
+      if(val>0) econ = r2(econ+val); if(val<0) repor = r2(repor-val);
+      res = dif>0 ? `<span class="pos">sobra ${brl(val)}</span>` : (dif<0 ? `<span class="neg">repor ${brl(-val)}</span>` : 'certo');
+    } else if(rOc.n && atualX){
+      if(rOc.saldo>0) somados += rOc.saldo; if(rOc.saldo<0) descontados -= rOc.saldo;
+      res = rOc.saldo>0 ? `<span class="neg">+${rOc.saldo} dia(s) neste pedido</span>` : (rOc.saldo<0 ? `<span class="pos">${rOc.saldo} dia(s) neste pedido</span>` : 'empata');
+    } else if(rOc.n && !atualX) res = '<span class="muted">fora deste pedido</span>';
     const dvd = Math.abs(x.vd - vtDiario(x.c)) > 0.005;
-    return `<tr><td>${esc(x.c.nome)}${dvd?`<div class="sub">rota mudou: hoje ${brl(vtDiario(x.c))}/dia</div>`:''}</td><td class="n"><input class="pt-in pt-vd" data-ptv="${x.c.id}" value="${String(x.vd.toFixed(2)).replace('.',',')}" inputmode="decimal"></td><td class="n">${prev}</td><td class="n"><input class="pt-in" data-pt="${x.c.id}" value="${dr.fonte==='manual'?real:''}" inputmode="numeric" placeholder="${dr.fonte==='ocorr'?real:'?'}">${rOc.n?`<div class="sub"><button class="link" data-ocp="${x.c.id}">📅 ${rOc.saldo>0?'+':''}${rOc.saldo}</button></div>`:`<div class="sub"><button class="link" data-ocp="${x.c.id}">📅 lançar</button></div>`}</td><td class="n">${res}</td></tr>`;
+    return `<tr><td>${esc(x.c.nome)}${dvd?`<div class="sub">rota mudou: hoje ${brl(vtDiario(x.c))}/dia</div>`:''}</td><td class="n"><input class="pt-in pt-vd" data-ptv="${x.c.id}" value="${String(x.vd.toFixed(2)).replace('.',',')}" inputmode="decimal"></td><td class="n">${prev}</td><td class="n"><button class="link" data-ocp="${x.c.id}">${rOc.n?`📅 ${rOc.saldo>0?'+':''}${rOc.saldo}`:'📅 lançar'}</button></td><td class="n"><input class="pt-in" data-pt="${x.c.id}" value="${real==null?'':real}" inputmode="numeric" placeholder="—"></td><td class="n">${res}</td></tr>`;
   }).join('');
-  const temVR = !!(vrmeses[pym] && Object.keys(vrmeses[pym].itens||{}).length);
-  el.innerHTML = `<details class="more" data-k="ponto-${pym}" ${lanc.length<xs.length?'open':''}><summary>${ymNome(pym)}: ${lanc.length} de ${xs.length} lançados${econ>0?` · <b class="pos">${brl(econ)} sobrando (desconta)</b>`:''}${repor>0?` · <b class="neg">${brl(repor)} de dias extras (soma)</b>`:''}</summary>
-    <div class="note" style="margin-top:6px">Se você lançou as <b>📅 ocorrências</b> (faltas, sábados/domingos trabalhados…), o campo "Trabalhou" já vem calculado (número cinza) — só digite se quiser trocar. Ou digite os dias trabalhados de cada um em ${ymNome(pym)}. <b>Faltas</b> deixam sobra no cartão, que é <b>descontada</b> deste pedido de ${ymNome(ym)}. <b>Dias extras</b> (sáb/dom/feriado) gastaram mais do que foi carregado, e a diferença é <b>somada</b> neste pedido.</div>
-    <div style="overflow-x:auto"><table class="t pt-tab"><tr><th>Colaborador</th><th class="n">R$/dia em ${ymNome(pym).split('/')[0]}</th><th class="n">Previsto</th><th class="n">Trabalhou</th><th class="n">Resultado</th></tr>${linhas}</table></div>
-    <div class="note">Se a condução mudou (ex.: era integração e agora é só ônibus), confira o <b>R$/dia</b> que valia em ${ymNome(pym)}. A sobra é calculada com o valor daquele mês.</div>
-    <div class="row-btns">${temVR?`<button class="mini" id="btn-pt-vr">Copiar dias do VR de ${ymNome(pym)}</button>`:''}<button class="mini" id="btn-pt-prev">Todos trabalharam o previsto</button></div></details>`;
+  const resumo = [somados?`<b class="neg">+${somados} dia(s) somados</b>`:'', descontados?`<b class="pos">−${descontados} dia(s) descontados</b>`:'', econ>0?`<b class="pos">${brl(econ)} de sobra (desconta)</b>`:'', repor>0?`<b class="neg">${brl(repor)} a repor (soma)</b>`:''].filter(Boolean).join(' · ');
+  el.innerHTML = `<details class="more" data-k="ponto-${pym}"><summary>${ymNome(pym)}${resumo?' · '+resumo:': sem ocorrências'}</summary>
+    <div class="note" style="margin-top:6px">As <b>📅 ocorrências</b> de ${ymNome(pym)} entram direto nos dias deste pedido de ${ymNome(ym)}: <b>falta desconta</b>, <b>dia extra (sáb/dom/feriado) soma</b>. A coluna "Trabalhou" é opcional: só use se preferir digitar o total de dias do ponto em vez de lançar ocorrências (aí vale o número digitado).</div>
+    <div style="overflow-x:auto"><table class="t pt-tab"><tr><th>Colaborador</th><th class="n">R$/dia em ${ymNome(pym).split('/')[0]}</th><th class="n">Previsto</th><th class="n">Ocorr.</th><th class="n">Trabalhou</th><th class="n">Neste pedido</th></tr>${linhas}</table></div>
+    <div class="note">Se a condução mudou (ex.: era integração e agora é só ônibus), confira o <b>R$/dia</b> que valia em ${ymNome(pym)} – usado quando você digita o "Trabalhou".</div></details>`;
   const atual = () => { memo={}; preservar('view-compra', renderCompra, null); renderResumo(); };
   el.querySelectorAll('[data-ocp]').forEach(b=>b.onclick=()=>abrirOcorr(b.dataset.ocp, pym));
   el.querySelectorAll('[data-ptv]').forEach(i=>i.onchange=()=>{ const it = meses[pym].itens[i.dataset.ptv]; const v = num(i.value); it.vdFix = v==null ? null : v; salvar('meses'); atual(); });
   el.querySelectorAll('[data-pt]').forEach(i=>i.onchange=()=>{ const it = meses[pym].itens[i.dataset.pt]; const v = i.value.trim(); it.diasReais = v===''?null:num(v); salvar('meses'); atual(); });
-  if($('btn-pt-vr')) $('btn-pt-vr').onclick = ()=>{ let n=0; xs.forEach(x=>{ const v = calcVR(pym, x.c.id); if(v && num(x.it.diasReais)==null){ x.it.diasReais = v.dias; n++; } }); salvar('meses'); atual(); toast(n?n+' preenchido(s) pelos dias do VR':'Nada a copiar (já preenchidos ou sem VR)'); };
-  $('btn-pt-prev').onclick = ()=>{ let n=0; xs.forEach(x=>{ if(diasReaisEf(pym,x.c.id,x.dias).v==null){ x.it.diasReais = x.dias; n++; } }); salvar('meses'); atual(); toast(n+' preenchido(s) com o previsto'); };
 }
 function renderCompra(){
   const ym = $('c-mes').value; if(!ym) return;
@@ -856,7 +863,7 @@ function renderCompra(){
         <div><label>Ajuste (faltas/férias)</label><div class="stepper"><button data-act="aj-" data-id="${x.c.id}">−</button><input data-f="ajuste" data-id="${x.c.id}" value="${Number(it.ajuste)||0}" inputmode="numeric"><button data-act="aj+" data-id="${x.c.id}">+</button></div></div>
         <div><label>Saldo no cartão</label><input data-f="saldoInformado" data-id="${x.c.id}" placeholder="${x.saldoEst<0?'a repor '+brl(-x.saldoEst):'est. '+brl(x.saldoEst)}" value="${it.saldoInformado!=null?it.saldoInformado:''}" inputmode="decimal"></div>
       </div>
-      <div class="note">${x.dias} dias × ${brl(x.vd)} = ${brl(x.mensal)} ${x.saldo<0?`+ <b>${brl(-x.saldo)}</b> a repor (dias extras do mês anterior)`:`− saldo ${brl(x.saldo)}${x.saldoInformado?' (informado)':(x.saldoPonto?' (sobra pelo ponto)':' (estimado)')}`} → ${x.diasLancar} dias = <b>${brl(x.total)}</b></div>
+      <div class="note">${(Number(it.ajuste)||x.ocAj)?`${x.du} dias úteis${Number(it.ajuste)?` ${it.ajuste>0?'+':'−'} ${Math.abs(it.ajuste)} ajuste`:''}${x.ocAj?` <b>${x.ocAj>0?'+':'−'} ${Math.abs(x.ocAj)} de ocorrências de ${ymNome(ymPrev(ym))}</b>`:''} = `:''}${x.dias} dias × ${brl(x.vd)} = ${brl(x.mensal)} ${x.saldo<0?`+ <b>${brl(-x.saldo)}</b> a repor (dias extras do mês anterior)`:`− saldo ${brl(x.saldo)}${x.saldoInformado?' (informado)':(x.saldoPonto?' (sobra pelo ponto)':' (estimado)')}`} → ${x.diasLancar} dias = <b>${brl(x.total)}</b></div>
       <details class="more" data-k="sol-${x.c.id}"><summary>Solicitação e fechamento do mês</summary>
         <div class="grid2">
           <div><label>Status</label><select data-f="status" data-id="${x.c.id}">${STATUS_SOL.map(s=>`<option ${it.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
@@ -868,7 +875,7 @@ function renderCompra(){
         </div>
       </details>
       ${x.alertas.length?`<div class="alert-list">${x.alertas.map(a=>`<div>⚠ ${esc(a)}</div>`).join('')}</div>`:''}
-      ${linhaOcAplicada(ym, x.c.id, Number(it.ajuste)<0)}
+      ${linhaOcAplicada(ym, x.c.id, Number(it.ajuste)<0, x.ocIgnorado)}
       <div class="row-btns"><button class="mini ok" data-act="ok" data-id="${x.c.id}">✔ Marcar como conferido</button><button class="mini" data-oc="${x.c.id}">📅 Ocorrências${resumoOc(mesOcorrDe(ym),x.c.id).n?' ('+resumoOc(mesOcorrDe(ym),x.c.id).n+')':''}</button><button class="mini" data-act="rm" data-id="${x.c.id}">⏸ Deixar fora deste mês</button></div>
     </div>`; }).join('') : `<div class="empty">${filtroConf.c==='pend'&&itens.length?'✔ Todos os colaboradores foram conferidos.':'Ninguém aqui.'}</div>`) + blocoFora(ym);
 }
